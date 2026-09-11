@@ -26,6 +26,11 @@ int main()
 	// check_init_password();
 	// NV400F_send_data(0x2f);
 	// lcd_show_zk_str("请输入密码：                ",0,0,32,0x0000,0xffff);
+
+
+
+
+
 	MG200_enroll(0x00);
 
 	
@@ -33,6 +38,19 @@ int main()
 	while(1)
 	{
 		u8 id = MG200_match();
+		if(id != 0)
+		{
+			printf("匹配成功，用户ID：%d\r\n",id);
+			delay_ms(3000);
+			printf("擦除用户指纹...\r\n");
+			MG200_erase(id);
+			printf("擦除完成\r\n");
+		}
+		else
+		{
+			printf("匹配失败\r\n");
+		}
+		
 	}
 }
 

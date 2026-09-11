@@ -213,9 +213,10 @@ u8 MG200_match(void)
     }
     else
     {
-        printf("匹配失败\r\n");
+        printf("通信错误\r\n");
         return 1;
     }
+    return 0;
 }
 
 
@@ -223,8 +224,57 @@ u8 MG200_match(void)
 /*****************************
  * 函数名：MG200_erase
  * 函数功能：擦除用户指纹
- * 函数参数：u8 id--用户id号
+ * 函数参数：u8 id--用户id号：0x01-0x64
  * 函数返回值：
  *              u8--擦除结果
  * 函数说明：
 ********************************/  
+u8 MG200_erase(u8 id)
+{
+    u8 param = 0;
+    u8 result = 0;
+    //1.发送删除指令
+    MG200_send_packet(0x73,id);
+    //2.接收数据包
+    if(MG200_rec_packet(0x73,&param,&result) == 0)
+    {
+        switch(result)
+        {
+            case 0x00: printf("删除成功\r\n");break;
+            case 0x83: printf("参数错误(ID≤0 或者 ID > 最大用户数)\r\n");break;
+            case 0x90: printf("未注册的用户\r\n");break;
+            case 0xFF: printf("写入 ROM 错误\r\n");break;
+        }
+        return result;
+    }
+    return 0;
+}
+
+
+/*****************************
+ * 函数名：MG200_erase_all
+ * 函数功能：擦除所有用户指纹
+ * 函数参数：无
+ * 函数返回值：
+ *              u8--擦除结果
+ * 函数说明：
+********************************/  
+u8 MG200_erase_all(void)
+{
+    u8 param = 0;
+    u8 result = 0;
+    //1.发送擦除所有用户指纹指令
+    MG200_send_packet(0x54,0x00);
+    //2.接收数据包
+    if(MG200_rec_packet(0x54,&param,&result) == 0)
+    {
+        switch(result)
+        {
+            case 0x00 : printf("删除全部用户信息成功\r\n");break;
+            case 0x90 : printf("删除失败 (注册的用户数为 0 的时候)\r\n");break;
+            default: printf("删除失败\r\n");
+        }
+        return result;
+    }
+    return 0;
+}

@@ -11,4 +11,6 @@ void MG200_init(void);
 u8 MG200_get_fingerprint(u8 capture_cnt);
 u8 MG200_enroll(u8 id);
 u8 MG200_match(void);
+u8 MG200_erase(u8 id);
+u8 MG200_erase_all(void);
 #endif
