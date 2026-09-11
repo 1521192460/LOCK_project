@@ -30,6 +30,8 @@ void MG200_init(void)
     GPIO_Init(GPIOC,&GPIO_InitStruct);
     //设置引脚电平
     MG200_POWER_ON;
+    //等待模块上电完成
+    delay_ms(500);
 }
 
 
@@ -207,16 +209,16 @@ u8 MG200_match(void)
     {
         switch(result)
         {
-            case 0x00: printf("匹配成功\r\n");return param;
-            case 0x92: printf("匹配失败\r\n");return 0;
+            case 0x00: printf("匹配成功，用户ID：%d\r\n",param);break;
+            case 0x92: printf("匹配失败\r\n");break;
         }
+        return param;
     }
     else
     {
         printf("通信错误\r\n");
         return 1;
     }
-    return 0;
 }
 
 
@@ -277,4 +279,37 @@ u8 MG200_erase_all(void)
         return result;
     }
     return 0;
+}
+
+
+
+/*****************************
+ * 函数名：MG200_get_user_num
+ * 函数功能：获取注册指纹数量
+ * 函数参数：无
+ * 函数返回值：
+ *              u8--注册指纹数量，
+ *              成功: 0-100 失败: 00h
+ * 函数说明：
+********************************/  
+u8 MG200_get_user_num(void)
+{
+    u8 param = 0;
+    u8 result = 0;
+    //1.发送获取注册指纹数量指令
+    MG200_send_packet(0x55,0x00);
+    //2.接收数据包
+    if(MG200_rec_packet(0x55,&param,&result) == 0)
+    {
+        switch(result)
+        {
+            case 0x00: printf("获取成功\r\n");break;
+            default: printf("获取失败\r\n");break;
+        }
+        return param;
+    }
+    else
+    {
+        return 0;
+    }
 }

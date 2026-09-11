@@ -20,6 +20,8 @@ int main()
 		//zk_update();		//字库烧录
 		printf("初始化设置\r\n");
 		at24c02_write_byte(0,0);//将初始密码标志位设置为0
+		MG200_erase_all();
+		printf("所有用户指纹已擦除\r\n");
 	}
 	// CY8CMBR3116_init();
 	// //检查初始密码
@@ -27,29 +29,17 @@ int main()
 	// NV400F_send_data(0x2f);
 	// lcd_show_zk_str("请输入密码：                ",0,0,32,0x0000,0xffff);
 
+	u8 user_num = MG200_get_user_num();
+	printf("当前注册用户数：%d\r\n",user_num);
 
-
-
-
+	
 	MG200_enroll(0x00);
 
 	
 	
 	while(1)
 	{
-		u8 id = MG200_match();
-		if(id != 0)
-		{
-			printf("匹配成功，用户ID：%d\r\n",id);
-			delay_ms(3000);
-			printf("擦除用户指纹...\r\n");
-			MG200_erase(id);
-			printf("擦除完成\r\n");
-		}
-		else
-		{
-			printf("匹配失败\r\n");
-		}
+		MG200_match();
 		
 	}
 }

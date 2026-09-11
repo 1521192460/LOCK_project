@@ -13,4 +13,5 @@ u8 MG200_enroll(u8 id);
 u8 MG200_match(void);
 u8 MG200_erase(u8 id);
 u8 MG200_erase_all(void);
+u8 MG200_get_user_num(void);
 #endif
