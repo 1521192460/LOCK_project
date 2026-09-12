@@ -171,7 +171,7 @@ void CY8CMBR3116_reg_config(u8 set_mode)
     //1.获取芯片状态
     u8 sys_status = 0;
     CY8CMBR3116_read_data(0x8a,1,&sys_status);//读取系统配置标志，获取芯片状态
-    (sys_status==0) ? (printf("芯片为出厂设置\r\n")) : (printf("芯片不为出厂设置\r\n"));
+    (sys_status==0) ? (lcd_show_zk_str("芯片为出厂设置",0,0,16,0x0000,0xffff)) : (lcd_show_zk_str("芯片不为出厂设置",0,0,16,0x0000,0xffff));
     //2.根据出厂状态判断是否要对进行配置
     if(sys_status == 0 && set_mode == 0)
     {
@@ -187,10 +187,10 @@ REINIT:
             break;
     }
     if(ret == 0)
-        printf("配置寄存器成功\r\n");
+        lcd_show_zk_str("配置寄存器成功",0,16,16,0x0000,0xffff);
     else
     {
-        printf("配置寄存器失败\r\n");
+        lcd_show_zk_str("配置寄存器失败",0,16,16,0x0000,0xffff);
         return;
     }
 
@@ -202,10 +202,10 @@ REINIT:
         break;
     }
     if(ret == 0)
-        printf("配置指令寄存器成功\r\n");
+        lcd_show_zk_str("配置指令寄存器成功",0,32,16,0x0000,0xffff);
     else
     {
-        printf("配置指令寄存器失败\r\n");
+        lcd_show_zk_str("配置指令寄存器失败",0,32,16,0x0000,0xffff);
         return;
     }
     delay_ms(300);//继续往下跑代码，需要等待300ms，确保配置完成
@@ -214,10 +214,10 @@ REINIT:
     CY8CMBR3116_read_data(0x89,1,&err_code);
     switch(err_code)
     {
-        case 0:printf("指令执行成功\r\n");break;
-        case 253:printf("对闪存的写入操作失败\r\n");break;
-        case 254:printf("CONFIG_CRC 所存储的配置 CRC 校验和与计算得到的配置 CRC 校验和不一致\r\n");break;
-        case 255:printf("指令无效\r\n");break;
+        case 0:lcd_show_zk_str("指令执行成功",0,48,16,0x0000,0xffff);break;
+        case 253:lcd_show_zk_str("对闪存的写入操作失败",0,48,16,0x0000,0xffff);break;
+        case 254:lcd_show_zk_str("CONFIG_CRC 所存储的配置 CRC 校验和与计算得到的配置 CRC 校验和不一致",0,48,16,0x0000,0xffff);break;
+        case 255:lcd_show_zk_str("指令无效",0,48,16,0x0000,0xffff);break;
     }
     cnt++;
     if(err_code != 0)
@@ -234,7 +234,8 @@ REINIT:
     }
     //6.配置成功，软件复位
     CY8CMBR3116_write_data(0x86,1,(u8 *)255);
-    printf("总体配置成功\r\n");
+    lcd_show_zk_str("总体配置成功",0,64,16,0x0000,0xffff);
+    lcd_clear(0,0,240,240,0xffff);
 }
 
 
@@ -330,13 +331,13 @@ u8 CY8CMBR3116_key_scan(void)
  *          在AT24C02中开辟一个空间作为初始密码标志位
  *          如果标志位为0，说明是第一次开机，需要设置初始密码
  *          如果标志位为1，说明不是第一次开机，不需要设置初始密码
- *          addr 1-21空间 用于存储初始密码
- *          addr 22空间 用于存储密码长度标志位
+ *          addr 1-6空间 用于存储初始密码
+ *          addr 7空间 用于存储密码长度标志位
  ***************************************************/
 void check_init_password(void)
 {
     u8 pwd_flag = 0;  
-    at24c02_read_byte(0,&pwd_flag);//读出初始密码标志位
+    at24c02_read_byte(0,&pwd_flag);//读出初始开机标志位
     if(pwd_flag == 1)//不是第一次开机
     {
         return;
@@ -347,46 +348,44 @@ void check_init_password(void)
         NV400F_send_data(0x2d); 
         delay_ms(2000);
     }
-    lcd_show_zk_str("请输入新密码           ",0,0,32,0x0000,0xffff);
-    NV400F_send_data(0x0c);
+    lcd_show_zk_str("设置开门密码           ",0,0,32,0x0000,0xffff);
+    NV400F_send_data(0x01);
     u8 key_value = 0;       //按键值
     u8 pwd_cnt = 0;            //密码长度计数器
     u8 pwd_input = 1;           //记录第几次输入密码
-    u8 first_pwd[20] = {0};//第一次输入密码保存缓冲区
-    u8 second_pwd[20] = {0};//第二次输入密码保存缓冲区
+    u8 first_pwd[6] = {0};//第一次输入密码保存缓冲区
+    u8 second_pwd[6] = {0};//第二次输入密码保存缓冲区
     //设置初始密码
     while(1)
     {
         key_value = CY8CMBR3116_key_scan();
         if(key_value != 0xff)
         {
-            if(pwd_input == 1 )
+            if(pwd_input == 1 )//第一次设置密码
             {
                 first_pwd[pwd_cnt++] = key_value;
-                if(key_value == '#')
+                if(pwd_cnt == 6)
                 {
-                    first_pwd[pwd_cnt-1] = '\0';
                     pwd_cnt = 0;
                     key_value = 0xff;
-                    lcd_show_zk_str("请再次确认密码           ",0,0,32,0x0000,0xffff);
-                    NV400F_send_data(0x0d);
+                    lcd_show_zk_str("请再次输入确认密码           ",0,0,32,0x0000,0xffff);
+                    NV400F_send_data(0x31);
+                    delay_ms(200);
                     pwd_input = 2;          //切换到第二次输入密码
                 }
             }
             else if(pwd_input == 2)
             {
                 second_pwd[pwd_cnt++] = key_value;
-                if(key_value == '#')
+                if(pwd_cnt == 6)
                 {
-                    second_pwd[pwd_cnt-1] = '\0';
                     if(strcmp((char *)first_pwd,(char *)second_pwd) == 0)
                     {
                         lcd_show_zk_str("两次输入密码一致，设置成功  ",0,0,32,0x0000,0xffff);
-                        delay_ms(500);
                         NV400F_send_data(0x1c);
-                        at24c02_write_byte(22,pwd_cnt-1);//写入密码长度标志位
-                        at24c02_write_cross_page(1,pwd_cnt-1,second_pwd);//写入初始密码
-                        at24c02_write_byte(0,1);//写入初始密码标志位
+                        delay_ms(500);
+                        at24c02_write_byte(7,pwd_cnt);//写入密码长度标志位
+                        at24c02_write_cross_page(1,pwd_cnt,second_pwd);//写入初始密码
                         return;
                     }
                     else
@@ -394,7 +393,7 @@ void check_init_password(void)
                         lcd_show_zk_str("两次输入密码不一致，重新输入",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0x1b);
                         delay_ms(500);
-                        lcd_show_zk_str("请输入新密码                      ",0,0,32,0x0000,0xffff);
+                        lcd_show_zk_str("请设置初始密码              ",0,0,32,0x0000,0xffff);
                         key_value = 0xff;
                         pwd_cnt = 0;
                         pwd_input = 1;
@@ -404,6 +403,105 @@ void check_init_password(void)
         }
     }
 }
+/****************************************************
+ * 函数名:set_admin_password
+ * 函数功能:设置管理员密码
+ * 函数参数：void
+ * 函数返回值：无
+ * 函数说明：
+ *          addr 8-13空间 用于存储管理员密码
+ *          addr 14空间 用于存储密码长度标志位
+ *          如果管理员密码和初始密码一致就要重新设置管理员密码
+ ***************************************************/
+void set_admin_password(void)
+{
+    u8 pwd_flag = 0;  
+    at24c02_read_byte(0,&pwd_flag);
+    if(pwd_flag == 1)
+    {
+        return;
+    }
+    else
+    {
+        lcd_show_zk_str("设置管理员密码              ",0,0,32,0x0000,0xffff);
+        NV400F_send_data(0x30); 
+        delay_ms(2000);
+    }
+    u8 key_value = 0;
+    u8 pwd_cnt = 0;
+    u8 pwd_input = 1;
+    u8 first_pwd[6] = {0};
+    u8 second_pwd[6] = {0};
+    u8 init_pwd[6] = {0};
+    while(1)
+    {
+        key_value = CY8CMBR3116_key_scan();
+        if(key_value != 0xff)
+        {
+            if(pwd_input == 1)
+            {
+                first_pwd[pwd_cnt++] = key_value;
+                if(pwd_cnt == 6)
+                {
+                    pwd_cnt = 0;
+                    key_value = 0xff;
+                    lcd_show_zk_str("请再次输入确认密码           ",0,0,32,0x0000,0xffff);
+                    NV400F_send_data(0x31);
+                    delay_ms(300);
+                    pwd_input = 2;
+                    while(CY8CMBR3116_get_key() != 0xff);
+                    CY8CMBR3116_key_scan();
+                }
+            }
+            else if(pwd_input == 2)
+            {
+                second_pwd[pwd_cnt++] = key_value;
+                if(pwd_cnt == 6)
+                {
+                    at24c02_sequential_read(1,6,init_pwd);
+                    if(strcmp((char *)first_pwd,(char *)second_pwd) != 0)
+                    {
+                        lcd_show_zk_str("两次输入密码不一致，重新输入",0,0,32,0x0000,0xffff);
+                        NV400F_send_data(0x1b);
+                        delay_ms(500);
+                        lcd_show_zk_str("请设置管理员密码            ",0,0,32,0x0000,0xffff);
+                        key_value = 0xff;
+                        pwd_cnt = 0;
+                        pwd_input = 1;
+                    }
+                    else 
+                    {
+                        if(strcmp((char *)second_pwd,(char *)init_pwd) == 0)
+                        {
+                            lcd_show_zk_str("与初始密码一致，重新输入      ",0,0,32,0x0000,0xffff);
+                            NV400F_send_data(0x17);
+                            delay_ms(500);
+                            lcd_show_zk_str("请设置管理员密码           ",0,0,32,0x0000,0xffff);
+                            key_value = 0xff;
+                            pwd_cnt = 0;
+                            pwd_input = 1;
+                        }
+                        else if(strcmp((char *)first_pwd,(char *)second_pwd) == 0)
+                        {
+                            lcd_show_zk_str("两次输入密码一致，设置成功  ",0,0,32,0x0000,0xffff);
+                            delay_ms(500);
+                            NV400F_send_data(0x1c);
+                            at24c02_write_byte(14,pwd_cnt);
+                            at24c02_write_cross_page(8,pwd_cnt,second_pwd);
+                            at24c02_write_byte(0,1);
+                            lcd_show_zk_str("请输入密码：                ",0,0,32,0x0000,0xffff);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
 
 /**************************************************
  * 函数名:password_open_door
@@ -412,49 +510,89 @@ void check_init_password(void)
  * 函数返回值：无
  * 函数说明：
  ***************************************************/
-void password_open_door(void)
+u8 password_open_door(void)
 {
-    static u8 input_pwd[20] = {0};    //输入密码缓冲区缓冲区
-    u8 read_pwd[20] = {0};            //读取密码缓冲区缓冲区
-    static u8 pwd_cnt = 0;            //密码长度计数器
-    static u8 error_input = 0;        //记录第几次输入密码
-    u8 key_value = 0xff;              //按键值
-    u8 pwd_len = 0;                   //读取密码长度
-    
+    static u8 input_pwd[6] = {0};
+    static u8 pwd_cnt = 0;
+
+    u8 key_value;
+    u8 user_pwd[6] = {0};
+    u8 admin_pwd[6] = {0};
+    static u8 err_cnt = 0;
+
     key_value = CY8CMBR3116_key_scan();
-    if(key_value != 0xff)
-    {   
-        input_pwd[pwd_cnt++] = key_value;
-        if(key_value == '#')
-        {
-            at24c02_read_byte(22,&pwd_len);//读取密码长度标志位
-            input_pwd[pwd_cnt-1] = '\0';        //清除最后一位‘#’
-            at24c02_sequential_read(1,pwd_len,read_pwd);//读取密码
-            if(strcmp((char *)input_pwd,(char *)read_pwd) == 0)
-            {
-                lcd_show_zk_str("密码正确，开门成功          ",0,0,32,0x0000,0xffff);
-                delay_ms(100);
-                NV400F_send_data(0x12);
-                error_input = 0;
-                LOCK_ON;
-                delay_ms(1000);
-                LOCK_OFF;
-                memset(input_pwd,0,sizeof(input_pwd));
-                lcd_show_zk_str("请输入密码：            ",0,0,32,0x0000,0xffff);
-            }
-            else
-            {
-                lcd_show_zk_str("密码错误，开门失败          ",0,0,32,0x0000,0xffff);
-                NV400F_send_data(0x13);
-                delay_ms(1000);
-                lcd_show_zk_str("请输入密码：            ",0,0,32,0x0000,0xffff);
-                error_input++;
-                if(error_input >= 3)
-                {
-                   NV400F_send_data(0x18);
-                }
-            }
-            pwd_cnt = 0;
-        }  
+
+    if(key_value == 0xff)
+    {
+        return AUTH_NONE;//无按键
     }
+
+    input_pwd[pwd_cnt++] = key_value;
+
+    /* 收集满 6 位密码后自动验证 */
+    if(pwd_cnt < 6)
+    {
+        return AUTH_NONE;//密码未输入满 6 位
+    }
+
+    /* 读取用户密码：AT24C02 地址 1~6 */
+    at24c02_sequential_read(1, 6, user_pwd);
+
+    /* 读取管理员密码：AT24C02 地址 8~13 */
+    at24c02_sequential_read(8, 6, admin_pwd);
+
+    /*
+     * 管理员密码优先判断。
+     * 如果两种密码相同，系统会进入管理员页面。
+     */
+    if(memcmp(input_pwd, admin_pwd, 6) == 0)
+    {
+        pwd_cnt = 0;
+        memset(input_pwd, 0, sizeof(input_pwd));
+
+        lcd_show_zk_str("管理员认证成功          ",0, 0, 32, 0x0000, 0xffff);
+        err_cnt = 0;
+        delay_ms(500);
+
+        return AUTH_ADMIN_OK;
+    }
+
+    /* 用户密码验证 */
+    if(memcmp(input_pwd, user_pwd, 6) == 0)
+    {
+        pwd_cnt = 0;
+        memset(input_pwd, 0, sizeof(input_pwd));
+
+        lcd_show_zk_str("密码正确，开门成功      ",0, 0, 32, 0x0000, 0xffff);
+
+        NV400F_send_data(0x12);
+        err_cnt = 0;
+        LOCK_ON;
+        delay_ms(1000);
+        LOCK_OFF;
+
+        lcd_show_zk_str("请输入密码：            ",0, 0, 32, 0x0000, 0xffff);
+
+        return AUTH_USER_OK;
+    }
+
+    /* 密码错误 */
+    pwd_cnt = 0;
+    memset(input_pwd, 0, sizeof(input_pwd));
+
+    lcd_show_zk_str("密码错误                ",0, 0, 32, 0x0000, 0xffff);
+    err_cnt++;
+    NV400F_send_data(0x13);
+    delay_ms(1000);
+
+    lcd_show_zk_str("请输入密码：            ",0, 0, 32, 0x0000, 0xffff);
+    //大于三次错误，报警
+    if(err_cnt >= 3)
+    {
+        NV400F_send_data(0x18);
+    }
+    return AUTH_FAILED;
 }
+
+
+

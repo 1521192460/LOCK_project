@@ -14,7 +14,7 @@ int main()
 	usart1_init(115200);	//USART1初始化
 	NV400F_init();			//NV400F语音初始化
 	MG200_init();			//MG200指纹初始化
-
+	CY8CMBR3116_init();		//CY8CMBR3116初始化
 	if(KEY1)
 	{
 		//zk_update();		//字库烧录
@@ -23,23 +23,41 @@ int main()
 		MG200_erase_all();
 		printf("所有用户指纹已擦除\r\n");
 	}
-	// CY8CMBR3116_init();
-	// //检查初始密码
-	// check_init_password();
-	// NV400F_send_data(0x2f);
-	// lcd_show_zk_str("请输入密码：                ",0,0,32,0x0000,0xffff);
+	//检查初始密码
+	check_init_password();
+	//设置管理员密码
+	set_admin_password();
 	
-	MG200_get_user_num();
-	
-	MG200_enroll(0x00);
+    u8 current_page;
+    u8 key_value;
+    u8 auth_result;
 
-	
-	
+    current_page = USER_PAGE;
 	while(1)
 	{
-		MG200_match();
-		
+		// if(current_page == USER_PAGE)
+        // {
+        //     auth_result = user_page();
+
+        //     if(auth_result == AUTH_ADMIN_OK)
+        //     {
+        //         current_page = ADMIN_PAGE;
+        //     }
+        // }
+        // else if(current_page == ADMIN_PAGE)
+        // {
+        //     if(manage_page() == USER_PAGE)
+        //     {
+        //         current_page = USER_PAGE;
+        //     }
+        // }
+		switch(current_page)
+		{
+			case USER_PAGE:auth_result = user_page();if(auth_result == AUTH_ADMIN_OK){current_page = ADMIN_PAGE;}break;
+			case ADMIN_PAGE:auth_result = manage_page();if(auth_result == USER_PAGE){current_page = USER_PAGE;}break;
+		}
 	}
 }
+
 
 

@@ -31,7 +31,7 @@ void NV400F_init(void)
     //初始化data为高电平
     VOICE_DATA_H;
     //初始音量
-    NV400F_send_data(0xef);
+    NV400F_send_data(0xea);
     //延时1ms
     delay_ms(10);
 }
