@@ -75,7 +75,7 @@ void usart1_send_byte(u8 byte)
  * 函数返回值：无
  * 函数说明：
  ************************************/
-void usart1_send_str(u8 *str)
+void usart2_send_str(u8 *str)
 {
     while(*str != '\0')
     {
