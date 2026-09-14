@@ -524,7 +524,7 @@ u8 password_open_door(void)
 
     if(key_value == 0xff)
     {
-        return AUTH_NONE;//无按键
+        return NULL;//无按键
     }
 
     input_pwd[pwd_cnt++] = key_value;
@@ -532,7 +532,7 @@ u8 password_open_door(void)
     /* 收集满 6 位密码后自动验证 */
     if(pwd_cnt < 6)
     {
-        return AUTH_NONE;//密码未输入满 6 位
+        return NULL;//密码未输入满 6 位
     }
 
     /* 读取用户密码：AT24C02 地址 1~6 */

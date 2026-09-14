@@ -15,24 +15,23 @@ int main()
 	NV400F_init();			//NV400F语音初始化
 	MG200_init();			//MG200指纹初始化
 	CY8CMBR3116_init();		//CY8CMBR3116初始化
+	//硬件初始化
 	if(KEY1)
 	{
 		//zk_update();		//字库烧录
-		printf("初始化设置\r\n");
+		printf("正在进行初始化\r\n");
 		at24c02_write_byte(0,0);//将初始密码标志位设置为0
 		MG200_erase_all();
 		printf("所有用户指纹已擦除\r\n");
+		printf("初始化完成\r\n");
 	}
 	//检查初始密码
 	check_init_password();
 	//设置管理员密码
 	set_admin_password();
 	
-    u8 current_page;
-    u8 key_value;
-    u8 auth_result;
+    u8 current_page = USER_PAGE;
 
-    current_page = USER_PAGE;
 	while(1)
 	{
 		// if(current_page == USER_PAGE)
@@ -53,8 +52,8 @@ int main()
         // }
 		switch(current_page)
 		{
-			case USER_PAGE:auth_result = user_page();if(auth_result == AUTH_ADMIN_OK){current_page = ADMIN_PAGE;}break;
-			case ADMIN_PAGE:auth_result = manage_page();if(auth_result == USER_PAGE){current_page = USER_PAGE;}break;
+			case USER_PAGE:if(user_page() == AUTH_ADMIN_OK){current_page = ADMIN_PAGE;}break;
+			case ADMIN_PAGE:if(manage_page() == USER_PAGE){current_page = USER_PAGE;}break;
 		}
 	}
 }

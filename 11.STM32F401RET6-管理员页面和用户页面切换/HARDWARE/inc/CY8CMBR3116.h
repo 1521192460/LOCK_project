@@ -11,8 +11,6 @@
 #define CY8CMBR3116_ADDR_READ 0X6F
 
 
-
-#define AUTH_NONE       0
 #define AUTH_USER_OK    1
 #define AUTH_ADMIN_OK   2
 #define AUTH_FAILED     3
