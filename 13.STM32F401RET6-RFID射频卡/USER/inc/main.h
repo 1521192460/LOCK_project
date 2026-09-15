@@ -24,6 +24,7 @@
 #include "NV400F.h"
 #include "MG200.h"
 #include "WIFI.h"
+#include "rfid.h"
 
 
 extern u8 page_flag;

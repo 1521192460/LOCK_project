@@ -32,6 +32,7 @@ virtualFolder:
         - path: HARDWARE/src/NV400F.c
         - path: HARDWARE/src/MG200.c
         - path: HARDWARE/src/WIFI.c
+        - path: HARDWARE/src/rfid.c
       folders: []
     - name: CMSIS
       files:

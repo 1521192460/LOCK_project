@@ -35,6 +35,7 @@ int main()
 	NV400F_init();			//NV400F语音初始化
 	MG200_init();			//MG200指纹初始化
 	CY8CMBR3116_init();		//CY8CMBR3116电容按键初始化
+	RC522_Init();			//RC522初始化
 	//WIFI_init();			//WIFI模块初始化
 
 
@@ -43,7 +44,7 @@ int main()
 		//zk_update();		//字库烧录
 		printf("初始化设置\r\n");
 		at24c02_write_byte(0,0);//将初始密码标志位设置为0
-		at24c02_write_cross_page(23,10,"123456");//默认管理员密码
+		at24c02_write_cross_page(23,10,"12");//默认管理员密码
 		at24c02_write_byte(34,6);//默认管理员密码长度
 		MG200_erase_all();
 		printf("初始化已完成\r\n");
@@ -91,7 +92,7 @@ int main()
 				ui_flag = 1;
 				NV400F_send_data(0x0b);//请输入请输入管理员密码
 				lcd_show_zk_str("管理员验证",32,0,32,0x0000,0xffff);
-				lcd_show_zk_str("输入管理员密码                 ",0,64,32,0x0000,0xffff);
+				lcd_show_zk_str("输入管理员密码",8,104,32,0x0000,0xffff);
 			}
 			//执行管理员验证功能
 			admin_password_check();
@@ -123,9 +124,9 @@ int main()
 				{
 					case '1':change_password_door();break;
 					case '2':change_password_admin();break;
-					case '3':printf("注册指纹\r\n");break;
+					case '3':MG200_register();break;
 					case '4':printf("删除指定指纹\r\n");break;
-					case '5':printf("删除所有指纹\r\n");break;
+					case '5':MG200_erase_all();break;
 					case '6':printf("录入新卡片\r\n");break;
 					case '7':printf("删除指定卡片\r\n");break;
 					case '8':printf("删除所有卡片\r\n");break;

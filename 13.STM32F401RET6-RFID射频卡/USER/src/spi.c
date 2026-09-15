@@ -146,3 +146,90 @@ void lcd_transfer_data(u8 data)
     //等待不忙
     while(SPI_I2S_GetFlagStatus(SPI2,SPI_I2S_FLAG_BSY));
 }
+
+
+
+
+
+/******************************
+ * 函数名:RFID_pin_init
+ * 函数功能:RFID引脚初始化---spi3
+ * 函数参数：void
+ * 函数返回值：void
+ * 函数说明:
+ *          RFID_SPI3_RST---PD2-----通用推挽输出
+ *          RFID_SPI3_CS----PA15-----通用推挽输出
+ *          RFID_SPI3_SCLK--PC10-----通用推挽输出
+ *          RFID_SPI3_MISO--PC11-----复用输入模式
+ *          RFID_SPI3_MOSI--PC12-----复用推挽输出
+ ******************************/
+void RFID_pin_init(void)
+{
+    /*时钟使能*/
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOA, ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
+
+    /*GPIO初始化*/
+    //RST、CS、SCLK初始化----通用推挽输出
+    GPIO_InitTypeDef GPIO_InitStruct = {0}; 
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
+    GPIO_InitStruct.GPIO_Pin =  GPIO_Pin_15;
+    GPIO_Init(GPIOA,&GPIO_InitStruct);
+    GPIO_InitStruct.GPIO_Pin =  GPIO_Pin_10;
+    GPIO_Init(GPIOC,&GPIO_InitStruct);
+    GPIO_InitStruct.GPIO_Pin =  GPIO_Pin_2;
+    GPIO_Init(GPIOD,&GPIO_InitStruct);
+
+    //MISO初始化----输入模式   MOSI初始化----复用推挽输出
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStruct.GPIO_Pin =  GPIO_Pin_12;
+    GPIO_PinAFConfig(GPIOC,GPIO_PinSource11,GPIO_AF_SPI3);
+    GPIO_PinAFConfig(GPIOC,GPIO_PinSource12,GPIO_AF_SPI3);
+    GPIO_Init(GPIOC,&GPIO_InitStruct);
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
+    GPIO_InitStruct.GPIO_Pin =  GPIO_Pin_11;
+    GPIO_Init(GPIOC,&GPIO_InitStruct);
+
+    /*SPI3初始化*/
+    SPI_InitTypeDef SPI_InitStruct = {0};
+    SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+    SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b;
+    SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;
+    SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;
+    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+    SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;
+    SPI_InitStruct.SPI_NSS = SPI_NSS_Soft;
+    SPI_InitStruct.SPI_Mode = SPI_Mode_Master;
+    SPI_Init(SPI3,&SPI_InitStruct);
+    //使能SPI3
+    SPI_Cmd(SPI3,ENABLE);
+
+    //拉高片选
+    RFID_CS_H;
+    //RES拉高
+    RFID_RST_H;
+}
+
+
+/******************************
+ * 函数名:rfid_transfer_data
+ * 函数功能:RFID交换数据
+ * 函数参数：u8 data
+ * 函数返回值：u8--接收数据
+ * 函数说明:
+ ******************************/
+u8 rfid_transfer_data(u8 data)
+{
+    //等待上一个字节发送完成
+    while(!(SPI_I2S_GetFlagStatus(SPI3,SPI_I2S_FLAG_TXE)));
+    //发送字节
+    SPI_I2S_SendData(SPI3,data);
+    //等待接收完成
+    while(!(SPI_I2S_GetFlagStatus(SPI3,SPI_I2S_FLAG_RXNE)));
+    //接收接收缓冲区数据
+    u8 ret = SPI_I2S_ReceiveData(SPI3);
+    return ret;
+}

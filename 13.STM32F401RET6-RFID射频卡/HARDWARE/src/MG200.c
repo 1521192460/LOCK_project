@@ -322,17 +322,33 @@ u8 MG200_get_user_num(void)
  ************************************/
 void MG200_register(void)
 {   
-    u8 id = 0;
+    static u8 id_enroll = 1;
+    u8 confirm = 0;
     lcd_clear(0,0,240,240,0xffff);
-    lcd_show_zk_str("采集指纹",60,0,32,0x0000,0xffff);
-    lcd_show_zk_str("请放手指",60,120,32,0x0000,0xffff);
+    lcd_show_zk_str("采集指纹",56,0,32,0x0000,0xffff);
+    lcd_show_zk_str("请放手指",56,98,32,0x0000,0xffff);
+    NV400F_send_data(0X10);//请放手指语音
     do
     {
-        id = MG200_enroll(00);
-        if(id != 0)
+        confirm = MG200_enroll(id_enroll);
+        if(confirm == 0)
         {
-            lcd_show_zk_str("注册失败",0,120,32,0x0000,0xffff);
+            lcd_show_zk_str("注册成功",56,98,32,0x0000,0xffff);
+            NV400F_send_data(0X1c);//操作成功
+            delay_ms(1000);
         }
-    }while(id != 0);
-    printf("ID：%d\r\n",id);
+    }while(confirm != 0);
+    // printf("模块注册用户ID：%d\r\n",id_enroll);
+    // at24c02_write_cross_page(34+id_enroll,1,&id_enroll);
+    // u8 id;
+    // at24c02_sequential_read(34+id_enroll,1,&id);
+    // printf("芯片注册用户ID：%d\r\n",id);
+    id_enroll++;
+    if(id_enroll >= 10)
+    {
+        id_enroll = 1;
+    }
+    lcd_clear(0,0,240,240,0xffff);
+    page_flag = 3;
+    ui_flag = 0;
 }
