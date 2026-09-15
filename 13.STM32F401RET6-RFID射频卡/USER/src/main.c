@@ -56,9 +56,6 @@ int main()
 	
 	/****************上报开门密码和管理员密码*******************/
 	//WIFI_report_password();
-
-	
-
 	while(1)
 	{
 		//开门页面
@@ -72,10 +69,11 @@ int main()
 				lcd_show_zk_str("开门页面",64,0,32,0x0000,0xffff);
 				lcd_show_zk_str("请输入密码                 ",32,64,32,0x0000,0xffff);
 			}
-
-			//执行开门功能
-			password_open_door();
-			WIFI_ctrl();
+			
+			//开门功能:密码开门、指纹开门、射频卡开门
+			//password_open_door();
+			//MG200_open_door();
+			//WIFI_ctrl();
 			if(KEY1)
 			{
 				page_flag = 2;//切换到管理员验证页面
@@ -125,7 +123,7 @@ int main()
 					case '1':change_password_door();break;
 					case '2':change_password_admin();break;
 					case '3':MG200_register();break;
-					case '4':printf("删除指定指纹\r\n");break;
+					case '4':MG200_delete_id();break;
 					case '5':MG200_erase_all();break;
 					case '6':printf("录入新卡片\r\n");break;
 					case '7':printf("删除指定卡片\r\n");break;

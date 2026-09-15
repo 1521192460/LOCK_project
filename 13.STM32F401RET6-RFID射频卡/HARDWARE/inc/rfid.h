@@ -104,7 +104,7 @@
 #define     RFU3C                 0x3C   
 #define     RFU3D                 0x3D   
 #define     RFU3E                 0x3E   
-#define     RFU3F		  		        0x3F
+#define     RFU3F		  		  0x3F
  
 
 //和MF522通讯时返回的错误代码
@@ -122,5 +122,10 @@ char PcdAuthState ( uint8_t ucAuth_mode,uint8_t ucAddr,uint8_t * pKey,uint8_t * 
 char PcdWrite ( uint8_t ucAddr, uint8_t * pData );
 char PcdRead ( uint8_t ucAddr, uint8_t * pData );
 char PcdHalt( void );
+
+
 void RC522_Init(void);
+u8 RFID_recognize(u8 *pSnr, u8 halt_mode);  //识别RFID卡
+u8 RFID_write_block(u8 addr, u8 *data);      //写入数据块
+u8 RFID_read_block(u8 addr, u8 *data);       //读取数据块
 #endif

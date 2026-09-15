@@ -281,7 +281,7 @@ char PcdComMF522 ( uint8_t ucCommand,
 /**************************************************************************
   * @brief 寻卡
   * @param  ucReq_code，寻卡方式 = 0x52，寻感应区内所有符合14443A标准的卡；
-            寻卡方式= 0x26，寻未进入休眠状态的卡
+                        寻卡方式= 0x26，寻未进入休眠状态的卡
   * @param  pTagType，卡片类型代码
              = 0x4400，Mifare_UltraLight
              = 0x0400，Mifare_One(S50)
@@ -449,8 +449,8 @@ char PcdSelect ( uint8_t * pSnr )
 /************************************
   * @brief  验证卡片密码
   * @param  ucAuth_mode，密码验证模式= 0x60，验证A密钥，
-            密码验证模式= 0x61，验证B密钥
-  * @param  uint8_t ucAddr，块地址
+                         密码验证模式= 0x61，验证B密钥
+  * @param  uint8_t ucAddr，控制块地址 （addr/4）*4 +3----控制块地址=(数据块地址/4)*4+3
   * @param  pKey，密码 
   * @param  pSnr，卡片序列号，4字节
   * @retval 状态值= MI_OK，成功
@@ -611,4 +611,116 @@ void RC522_Init(void)
 	RFID_pin_init();//初始化RFID引脚
 	Reset_RC522();
 	M500PcdConfigISOType('A');
+}
+
+
+
+/*****************************
+ * 函数名：RFID_recognize
+ * 函数功能：RFID识别卡
+ * 函数参数：
+ *          u8 *pSnr--卡片序列号，4字节
+ *          u8 halt_mode    0:卡片识别后不进入休眠状态，1:卡片识别后进入休眠状态
+ * 函数返回值：u8         0:识别成功        非0:识别失败
+ * 函数说明：
+ *          休眠：
+ *               当卡片进入休眠状态，读卡器不能连续对卡片进行识别
+ *               也不能继续往下进行读写操作
+ ********************************/  
+u8 RFID_recognize(u8 *pSnr, u8 halt_mode)
+{
+  u8 id_type[2];
+  //寻卡
+  if(PcdRequest (PICC_REQIDL,id_type) != MI_OK)
+    return 1;
+  //防冲撞
+  if(PcdAnticoll(pSnr) != MI_OK)
+    return 2;
+  //选择卡片
+  if(PcdSelect(pSnr) != MI_OK)
+    return 3;
+  //识别到卡片，是否进入休眠状态
+  if(halt_mode == 1)
+  {
+    PcdHalt();
+  }
+  printf("卡片类型0x%02X%02X\r\n",id_type[0],id_type[1]);
+  printf("卡片ID号:0x%02X 0x%02X 0x%02X 0x%02X\r\n",pSnr[0],pSnr[1],pSnr[2],pSnr[3]);
+  return 0;//识别成功
+}
+
+
+/*****************************
+ * 函数名：RFID_write_block
+ * 函数功能：RFID写块函数
+ * 函数参数：
+ *           u8 addr----块地址0-63
+ *           u8 *data--要写入的数据，4字节数据
+ * 函数返回值：u8         0:写入成功        非0:写入失败
+ * 函数说明：
+ *          此函数固定写入数据大小16byte
+ *          不得将数据直接写入控制块
+ ********************************/ 
+u8 RFID_write_block(u8 addr, u8 *data)
+{
+  u8 id_buff[4] = {0};
+  u8 key[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
+  //1.识别卡
+  if(RFID_recognize(id_buff,0) != 0)
+  {
+    return 1;//识别卡失败
+  }
+  //2.验证卡片密码
+  if(PcdAuthState (PICC_AUTHENT1A,(addr/4)*4+3,key,id_buff) != MI_OK)
+  {
+    return 2;//验证密码失败
+  }
+  printf("验证密码成功\r\n");
+  //3.写入数据
+  if(PcdWrite (addr,data) != MI_OK)
+  {
+    return 3;//写入数据失败
+  }
+  printf("写入数据成功\r\n");
+  //4.写入成功后，进入休眠状态
+  PcdHalt();
+  return 0;//写入成功
+}
+
+
+
+/*****************************
+ * 函数名：RFID_read_block
+ * 函数功能：RFID读块函数
+ * 函数参数：
+ *           u8 addr----块地址0-63
+ *           u8 *data--读出的数据，16字节
+ * 函数返回值：u8         0:读成功        非0:读失败
+ * 函数说明：
+ *          此函数固定读数据大小16byte
+ ********************************/ 
+u8 RFID_read_block(u8 addr, u8 *data)
+{
+  u8 id_buff[4] = {0};
+  u8 key[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
+  //1.识别卡
+  if(RFID_recognize(id_buff,0) != 0)
+  {
+    return 1;//识别卡失败
+  }
+  //2.验证卡片密码
+  if(PcdAuthState (PICC_AUTHENT1A,(addr/4)*4+3,key,id_buff) != MI_OK)
+  {
+    return 2;//验证密码失败
+  }
+  printf("验证密码成功\r\n");
+  //3.读数据
+  if(PcdRead (addr,data) != MI_OK)
+  {
+    return 3;//读数据失败
+  }
+  printf("读出数据:%s\r\n",data);
+  //4.读成功后，进入休眠状态
+  PcdHalt();
+  return 0;//读成功
 }

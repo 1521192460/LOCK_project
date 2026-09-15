@@ -15,4 +15,6 @@ u8 MG200_erase(u8 id);
 u8 MG200_erase_all(void);
 u8 MG200_get_user_num(void);
 void MG200_register(void);
+void MG200_open_door(void);
+void MG200_delete_id(void);
 #endif

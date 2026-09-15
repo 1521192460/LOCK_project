@@ -13,6 +13,7 @@
 void CY8CMBR3116_init(void);
 u8 CY8CMBR3116_get_key(void);
 u8 CY8CMBR3116_key_scan(void);  
+
 void check_init_password(void);
 void password_open_door(void);
 void admin_password_check(void);

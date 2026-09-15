@@ -311,6 +311,41 @@ u8 MG200_get_user_num(void)
     return 0;
 }
 
+/*****************************
+ * 函数名：MG200_open_door
+ * 函数功能：指纹开门
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ************************************/
+void MG200_open_door(void)
+{
+    //1.检测手指是否按下，无手指则立即返回（非阻塞）
+    if(!MG200_DETECT)
+        return;
+    //2.匹配用户指纹
+    u8 id = MG200_match();
+    if(id > 100)      //匹配失败
+        return;
+    //3.遍历at24c02指定地址(35-44)，判断指纹ID是否已注册
+    u8 max_id = 35;
+    at24c02_read_byte(34, &max_id);
+    for(u8 i = 0; i < max_id; i++)
+    {
+        u8 id_catch = 0;
+        at24c02_read_byte(35 + i, &id_catch);
+        if(id_catch == id)
+        {
+            printf("匹配成功，用户ID：%d\r\n", id);
+            LOCK_ON;
+            delay_ms(2000);
+            LOCK_OFF;
+            return;
+        }
+    }
+    printf("指纹未注册\r\n");
+}
+
 
 
 /*****************************
@@ -339,7 +374,7 @@ void MG200_register(void)
         }
     }while(confirm != 0);
     // printf("模块注册用户ID：%d\r\n",id_enroll);
-    // at24c02_write_cross_page(34+id_enroll,1,&id_enroll);
+    at24c02_write_cross_page(34+id_enroll,1,&id_enroll);
     // u8 id;
     // at24c02_sequential_read(34+id_enroll,1,&id);
     // printf("芯片注册用户ID：%d\r\n",id);
@@ -349,6 +384,96 @@ void MG200_register(void)
         id_enroll = 1;
     }
     lcd_clear(0,0,240,240,0xffff);
+    page_flag = 3;
+    ui_flag = 0;
+}
+
+
+
+
+/*****************************
+ * 函数功能：删除指定用户指纹页面
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ *          最多存储10个指纹
+ *          按#确认删除  按*取消返回
+ ************************************/
+void MG200_delete_id(void)
+{
+    lcd_clear(0, 0, 240, 240, 0xffff);
+    lcd_show_zk_str("删除指纹", 56, 0, 32, 0x0000, 0xffff);
+    //1.采集指纹获取ID（可中途按*取消）
+    lcd_show_zk_str("请放手指",56, 98, 32, 0x0000, 0xffff);
+    lcd_show_zk_str("*:取消", 56, 130, 32, 0x0000, 0xffff);
+    NV400F_send_data(0X10);
+    u8 id = 0;
+    while(1)//采集指纹获取ID（可中途按*取消）
+    {
+        u8 key = CY8CMBR3116_key_scan();
+        if(key == '*')
+        {
+            lcd_clear(0, 0, 240, 240, 0xffff);
+            page_flag = 3;
+            ui_flag = 0;
+            return;
+        }
+        if(MG200_DETECT)
+        {
+            id = MG200_match();
+            break;
+        }
+    }
+    if(id == 0) //匹配失败就返回管理员页面
+    {
+        lcd_clear(0, 0, 240, 240, 0xffff);
+        NV400F_send_data(0X1a);//验证失败语音
+        lcd_show_zk_str("删除指纹", 56, 0, 32, 0x0000, 0xffff);
+        lcd_show_zk_str("指纹未注册", 24, 98, 32, 0x0000, 0xffff);
+        delay_ms(1000);
+        lcd_clear(0, 0, 240, 240, 0xffff);
+        page_flag = 3;
+        ui_flag = 0;
+        return;
+    }
+    
+    //2.在AT24C02中查找该指纹ID
+    u8 index = 0;               //找到的指纹ID在AT24C02中的索引
+    for(u8 i = 0; i < 10; i++)  //从10个空间里面找到该指纹ID
+    {
+        u8 id_catch = 0;
+        at24c02_read_byte(35 + i, &id_catch);
+        if(id_catch == id)
+        {
+            index = i;
+            break;
+        }
+    }
+    //3.确认删除
+    lcd_clear(0, 0, 240, 240, 0xffff);
+    lcd_show_zk_str("确认删除?", 56, 0, 32, 0x0000, 0xffff);
+    lcd_show_zk_str("#:确认 *:取消", 24, 98, 32, 0x0000, 0xffff);
+    NV400F_send_data(0X0f); //是否删除语音
+    while(1)//确认删除（可中途按*取消）
+    {
+        u8 key = CY8CMBR3116_key_scan();
+        if(key == '#')
+        {
+            //删除MG200模块中的指纹
+            MG200_erase(id);
+            //删除AT24C02中的指纹ID
+            at24c02_write_byte(35 + index,0);
+            NV400F_send_data(0X1c);//操作成功
+            delay_ms(1000);
+            break;
+
+        }
+        if(key == '*')
+        {
+            break;
+        }
+    }
+    lcd_clear(0, 0, 240, 240, 0xffff);
     page_flag = 3;
     ui_flag = 0;
 }

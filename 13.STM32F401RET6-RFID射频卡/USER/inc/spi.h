@@ -26,6 +26,9 @@
 #define RFID_SCLK_H (GPIO_SetBits(GPIOC,GPIO_Pin_10))
 #define RFID_SCLK_L (GPIO_ResetBits(GPIOC,GPIO_Pin_10))
 
+#define RFID_MOSI_H (GPIO_SetBits(GPIOC,GPIO_Pin_12))
+#define RFID_MOSI_L (GPIO_ResetBits(GPIOC,GPIO_Pin_12))
+
 #define RFID_MISO_IN (GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_11))
 
 //º¯ÊýÉùÃ÷
