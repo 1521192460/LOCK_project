@@ -457,8 +457,8 @@ void MG200_delete_id(void)
     }
 
     //2.确认删除（MG200 自带存储，只删模块内指纹，不再操作 AT24C02）
-    lcd_clear(0, 32, 240, 240, 0xffff);
-    lcd_show_zk_str("  确认删除?   ", 56, 0, 32, 0x0000, 0xffff);
+    lcd_clear(0, 0, 240, 240, 0xffff);
+    lcd_show_zk_str("确认删除?", 40, 0, 32, 0x0000, 0xffff);
     lcd_show_zk_str("#:确认 *:取消", 15, 98, 32, 0x0000, 0xffff);
     NV400F_send_data(0X0f); //是否删除语音
     while(1)//确认删除，中途按*取消

@@ -5,7 +5,7 @@
 
 
 //º¯ÊýÉùÃ÷
-void WIFI_init(void);
+u8 WIFI_init(void);
 void WIFI_ctrl(void);
 void WIFI_report_password(void);
 u8 WIFI_send_data(u8 *cmd,u16 timeout);

@@ -343,17 +343,19 @@ void check_init_password(void)
     }
     else//是第一次开机
     {
-        lcd_show_zk_str("欢迎使用智能锁          ",0,0,32,0x0000,0xffff);
+        lcd_show_zk_str("欢迎使用智能锁",0,0,32,0x0000,0xffff);
         NV400F_send_data(0x2d); 
         delay_ms(2000);
+        lcd_clear(0,0,240,240,0xffff);
     }
-    lcd_show_zk_str("请输入新密码           ",0,0,32,0x0000,0xffff);
+    lcd_show_zk_str("请输入新密码",24,68,32,0x0000,0xffff);
     NV400F_send_data(0x0c);
     u8 key_value = 0;       //按键值
     u8 pwd_cnt = 0;            //密码长度计数器
     u8 pwd_input = 1;           //记录第几次输入密码
     u8 first_pwd[20] = {0};//第一次输入密码保存缓冲区
     u8 second_pwd[20] = {0};//第二次输入密码保存缓冲区
+    u8 buff[50] = {0};//发送数据缓冲区
     //设置初始密码
     while(1)
     {
@@ -368,7 +370,8 @@ void check_init_password(void)
                     first_pwd[pwd_cnt-1] = '\0';
                     pwd_cnt = 0;
                     key_value = 0xff;
-                    lcd_show_zk_str("请再次确认密码           ",0,0,32,0x0000,0xffff);
+                    lcd_clear(0,0,240,240,0xffff);
+                    lcd_show_zk_str("请再次确认密码",4,68,32,0x0000,0xffff);
                     NV400F_send_data(0x0d);
                     pwd_input = 2;          //切换到第二次输入密码
                 }
@@ -379,10 +382,12 @@ void check_init_password(void)
                 if(key_value == '#')
                 {
                     second_pwd[pwd_cnt-1] = '\0';
+                    sprintf((char *)buff,"AT+MQTTPUB=attributes,0,0,{\\\"doorpwd\\\":\\\"%s\\\"}\r\n",second_pwd);
                     if(strcmp((char *)first_pwd,(char *)second_pwd) == 0)
                     {
-                        lcd_show_zk_str("两次输入密码一致，设置成功  ",0,0,32,0x0000,0xffff);
-                        delay_ms(500);
+                        lcd_clear(0,0,240,240,0xffff);
+                        lcd_show_zk_str("两次输入密码一致，设置成功",0,0,32,0x0000,0xffff);
+                        WIFI_send_data(buff,2000);
                         NV400F_send_data(0x1c);
                         at24c02_write_byte(22,pwd_cnt-1);//写入密码长度标志位
                         at24c02_write_cross_page(1,pwd_cnt-1,second_pwd);//写入初始密码
@@ -391,12 +396,13 @@ void check_init_password(void)
                         return;
                     }
                     else
-                    {                       
+                    {                 
+                        lcd_clear(0,0,240,240,0xffff);      
                         lcd_show_zk_str("两次输入密码不一致，重新输入",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0x1b);
                         delay_ms(500);
                         lcd_clear(0,0,240,200,0xffff);
-                        lcd_show_zk_str("请输入新密码 ",0,0,32,0x0000,0xffff);
+                        lcd_show_zk_str("请输入新密码",24,68,32,0x0000,0xffff);
                         key_value = 0xff;
                         pwd_cnt = 0;
                         pwd_input = 1;
@@ -454,7 +460,7 @@ void password_open_door(void)
             else
             {
                 lcd_clear(0,0,240,240,0xffff);
-                lcd_show_zk_str("密码错误，开门失败          ",0,0,32,0x0000,0xffff);
+                lcd_show_zk_str("密码错误，开门失败",0,0,32,0x0000,0xffff);
                 NV400F_send_data(0x13);
                 delay_ms(1000);
                 error_input++;
@@ -506,7 +512,7 @@ void admin_password_check(void)
             if(strcmp((char *)input_pwd,(char *)read_pwd) == 0)
             {
                 lcd_clear(0,0,240,240,0xffff);
-                lcd_show_zk_str("管理员密码正确，验证成功          ",0,0,32,0x0000,0xffff);
+                lcd_show_zk_str("管理员密码正确，验证成功",0,0,32,0x0000,0xffff);
                 delay_ms(1000);
                 ui_flag = 0;//重置ui_flag
                 lcd_clear(0,0,240,240,0xffff);
@@ -517,7 +523,7 @@ void admin_password_check(void)
             else
             {
                 lcd_clear(0,0,240,240,0xffff);
-                lcd_show_zk_str("管理员密码错误，验证失败          ",0,0,32,0x0000,0xffff);
+                lcd_show_zk_str("管理员密码错误，验证失败",0,0,32,0x0000,0xffff);
                 delay_ms(1000);
                 lcd_clear(0,0,240,240,0xffff);
                 page_flag = 2;//切换到管理员验证页面（重新输入密码）
@@ -556,7 +562,7 @@ void change_password_door(void)
     u8 buff[60] = {0};
     lcd_clear(0,0,240,240,0xffff);
     lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
-    lcd_show_zk_str("请输入新密码          ",0,0,32,0x0000,0xffff);
+    lcd_show_zk_str("请输入新密码",24,68,32,0x0000,0xffff);
     NV400F_send_data(0X0C);     //请输入新密码
     while(1)
     {
@@ -572,7 +578,7 @@ void change_password_door(void)
                     lcd_clear(0,0,240,200,0xffff);
                     pwd_len = 0;
                     pwd_cnt++;
-                    lcd_show_zk_str("请再次输入新密码          ",0,0,32,0x0000,0xffff);
+                    lcd_show_zk_str("再次输入新密码",4,68,32,0x0000,0xffff);
                     NV400F_send_data(0X0d);     //请再次输入新密码
                     pwd_cnt = 2;            //切换第二次输入
                 }
@@ -588,12 +594,12 @@ void change_password_door(void)
                     if(strcmp((char *)first_input,(char *)second_input) == 0)
                     {
                         lcd_clear(0,0,240,200,0xffff);
-                        lcd_show_zk_str("密码修改成功          ",0,0,32,0x0000,0xffff);
-                        WIFI_send_data((u8 *)buff,3000);
+                        lcd_show_zk_str("密码修改成功",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1C);//操作成功语言
                         at24c02_write_cross_page(1,pwd_len-1,second_input);//写入开门密码
                         at24c02_write_byte(22,pwd_len-1);//写开门密码长度标志位
                         lcd_clear(0,0,240,240,0xffff);
+                        WIFI_send_data((u8 *)buff,3000);
                         ui_flag = 0;//重置ui_flag
                         page_flag = 3;//切换到管理员界面
                         return;
@@ -603,11 +609,13 @@ void change_password_door(void)
                         lcd_clear(0,0,240,200,0xffff);
                         lcd_show_zk_str("两次输入密码不一致，修改失败",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1b);//密码不一致语音
-                        delay_ms(1000);
+                        delay_ms(500);
                         lcd_clear(0,0,240,200,0xffff);
-                        lcd_show_zk_str("请输入新密码          ",0,0,32,0x0000,0xffff);
-                        usart2_send_byte(0X0C);     //请输入新密码
-                        
+                        lcd_show_zk_str("请输入新密码",24,68,32,0x0000,0xffff);
+                        NV400F_send_data(0X0C);     //请输入新密码
+                        key_value = 0xff;
+                        pwd_cnt = 1;
+                        pwd_len = 0;
                     }
                 }
             }
@@ -646,7 +654,7 @@ void change_password_admin(void)
     u8 buff[60] = {0};
     lcd_clear(0,0,240,240,0xffff);
     lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
-    lcd_show_zk_str("请输入新密码          ",0,0,32,0x0000,0xffff);
+    lcd_show_zk_str("请输入新密码",24,68,32,0x0000,0xffff);
     NV400F_send_data(0X0C);     //请输入新密码
     while(1)
     {
@@ -662,7 +670,7 @@ void change_password_admin(void)
                     lcd_clear(0,0,240,200,0xffff);
                     pwd_len = 0;
                     pwd_cnt++;
-                    lcd_show_zk_str("请再次输入新密码          ",0,0,32,0x0000,0xffff);
+                    lcd_show_zk_str("再次输入新密码",4,68,32,0x0000,0xffff);
                     NV400F_send_data(0X0d);     //请再次输入新密码
                     pwd_cnt = 2;            //切换第二次输入
                 }
@@ -679,10 +687,10 @@ void change_password_admin(void)
                     {
                         lcd_clear(0,0,240,200,0xffff);
                         lcd_show_zk_str("密码修改成功",0,0,32,0x0000,0xffff);
-                        WIFI_send_data((u8 *)buff,3000);
                         NV400F_send_data(0X1C);//操作成功语言
                         at24c02_write_cross_page(23,pwd_len-1,second_input);//写入管理员密码
                         at24c02_write_byte(34,pwd_len-1);//写管理员密码长度标志位
+                        WIFI_send_data((u8 *)buff,3000);
                         lcd_clear(0,0,240,240,0xffff);
                         ui_flag = 0;//重置ui_flag
                         page_flag = 3;//切换到管理员界面
@@ -691,12 +699,15 @@ void change_password_admin(void)
                     else
                     {
                         lcd_clear(0,0,240,200,0xffff);
-                        lcd_show_zk_str("两次输入密码不一致，修改失败          ",0,0,32,0x0000,0xffff);
+                        lcd_show_zk_str("两次输入密码不一致，修改失败",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1b);//密码不一致语音
-                        delay_ms(1000);
-                        lcd_show_zk_str("请输入新密码          ",0,0,32,0x0000,0xffff);
-                        usart2_send_byte(0X0C);     //请输入新密码
+                        delay_ms(500);
                         lcd_clear(0,0,240,200,0xffff);
+                        lcd_show_zk_str("请输入新密码",24,68,32,0x0000,0xffff);
+                        NV400F_send_data(0X0C);     //请输入新密码
+                        key_value = 0xff;
+                        pwd_cnt = 1;
+                        pwd_len = 0;
                     }
                 }
             }
