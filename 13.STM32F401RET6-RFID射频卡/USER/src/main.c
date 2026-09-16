@@ -15,7 +15,7 @@ u8 ui_flag = 0;
  *          			addr 22空间 用于存储密码长度标志位
  *          			addr 23-33空间 用于存储管理员密码
  *          			addr 34空间 用于存储管理员密码长度
- * 						addr 35-45 用于存储指纹id
+ * 						addr 35-55 用于存储射频卡id------一个射频卡id占4个字节
  ****************************/
 
 
@@ -45,8 +45,12 @@ int main()
 		printf("初始化设置\r\n");
 		at24c02_write_byte(0,0);//将初始密码标志位设置为0
 		at24c02_write_cross_page(23,10,"12");//默认管理员密码
-		at24c02_write_byte(34,6);//默认管理员密码长度
+		at24c02_write_byte(34,2);//默认管理员密码长度
 		MG200_erase_all();
+		for(u8 i=35;i<=55;i++)
+		{
+			at24c02_write_byte(i,0xff);//将射频卡id设置为0xff
+		}
 		printf("初始化已完成\r\n");
 	}
 	
@@ -56,8 +60,10 @@ int main()
 	
 	/****************上报开门密码和管理员密码*******************/
 	//WIFI_report_password();
+	
 	while(1)
 	{
+		
 		//开门页面
 		if(page_flag == 1)
 		{
@@ -66,13 +72,14 @@ int main()
 			{
 				ui_flag = 1;
 				NV400F_send_data(0x2f);//请输入密码
-				lcd_show_zk_str("开门页面",64,0,32,0x0000,0xffff);
-				lcd_show_zk_str("请输入密码                 ",32,64,32,0x0000,0xffff);
+				lcd_show_zk_str("开门页面",56,0,32,0x0000,0xffff);
+				lcd_show_zk_str("请输入密码",40,100,32,0x0000,0xffff);
 			}
 			
 			//开门功能:密码开门、指纹开门、射频卡开门
-			//password_open_door();
-			//MG200_open_door();
+			password_open_door();
+			MG200_open_door();
+			RFID_open_door();
 			//WIFI_ctrl();
 			if(KEY1)
 			{
@@ -90,7 +97,7 @@ int main()
 				ui_flag = 1;
 				NV400F_send_data(0x0b);//请输入请输入管理员密码
 				lcd_show_zk_str("管理员验证",32,0,32,0x0000,0xffff);
-				lcd_show_zk_str("输入管理员密码",8,104,32,0x0000,0xffff);
+				lcd_show_zk_str("输入管理员密码",8,100,32,0x0000,0xffff);
 			}
 			//执行管理员验证功能
 			admin_password_check();
@@ -124,10 +131,10 @@ int main()
 					case '2':change_password_admin();break;
 					case '3':MG200_register();break;
 					case '4':MG200_delete_id();break;
-					case '5':MG200_erase_all();break;
-					case '6':printf("录入新卡片\r\n");break;
-					case '7':printf("删除指定卡片\r\n");break;
-					case '8':printf("删除所有卡片\r\n");break;
+					case '5':MG200_delete_all();break;
+					case '6':RFID_add_card();break;
+					case '7':RFID_delete_card();break;
+					case '8':RFID_delete_all_card();break;
 					case '*':page_flag = 1;ui_flag = 0;key_value = 0xff;lcd_clear(0,0,240,240,0xffff);break;
 				}
 			}

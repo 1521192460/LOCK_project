@@ -724,3 +724,268 @@ u8 RFID_read_block(u8 addr, u8 *data)
   PcdHalt();
   return 0;//读成功
 }
+
+
+/*****************************
+ * 函数名：RFID_add_card
+ * 函数功能：添加射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+u8 buff[5][4] = {
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+};
+void RFID_add_card(void)
+{
+    u8 key_value = 0xff;
+    u8 id[4] = {0};
+    u8 i,j,cnt=0;
+    lcd_clear(0,0,240,240,0xffff);
+    lcd_show_zk_str("添加卡片",56,0,32,0x0000,0xffff);
+    lcd_show_zk_str("放置卡片",56,100,32,0x0000,0xffff);
+    lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
+    //读取空间35-55，判断是否有卡片ID
+    at24c02_sequential_read(35,20,(u8 *)buff);
+    // 1. 查找有没有重复卡
+    while(RFID_recognize(id,1))
+    {
+      key_value = CY8CMBR3116_key_scan();
+      if(key_value == '*')
+      {
+        lcd_clear(0,0,240,240,0xffff);
+        ui_flag = 0;
+        page_flag = 3;
+        return;
+      }
+    }
+    for(i=0;i<5;i++)//遍历5个卡片ID
+    {
+      for(j=0;j<4;j++)//遍历4个字节
+      {
+        if(buff[i][j] == id[j]) //对比每一组每一个字节
+        {
+          cnt++;//记录每组卡片ID
+        }
+        if(cnt == 4)//如果4个字节都相等，说明是重复卡
+        {
+          lcd_show_zk_str("录入失败",56,100,32,0x0000,0xffff);
+          NV400F_send_data(0x0e);//卡重复语音
+          delay_ms(500);
+          lcd_clear(0,0,240,240,0xffff);
+          ui_flag = 0;
+          page_flag = 3;
+          return;
+        }
+      }
+      cnt = 0;
+    }
+    //2.查找有没有空位
+    for(i=0;i<5;i++)//遍历5个卡片ID
+    {
+      for(j=0;j<4;j++)//遍历4个字节
+      {
+        if(buff[i][j] == 0xff) //对比每一组每一个字节
+        {
+          cnt++;//记录每组卡片ID的空闲字节数量
+        }
+      }
+      if(cnt == 4)
+      {
+        break;    //记录i的值
+      }
+      cnt=0;
+    }
+    if(i == 5)
+    {
+      lcd_show_zk_str("位置已满",56,100,32,0x0000,0xffff);
+      delay_ms(500);
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      page_flag = 3;
+      return;//没有空位
+    }
+    //3. 写入卡片ID
+    at24c02_write_page(35+i*4,4,id);
+    //4. 提示用户卡片ID已添加
+    lcd_show_zk_str("添加成功",56,100,32,0x0000,0xffff);
+    NV400F_send_data(0X1c);//操作成功
+    delay_ms(500);
+    lcd_clear(0,0,240,240,0xffff);
+    ui_flag = 0;
+    page_flag = 3;
+    return;
+}
+
+
+/*****************************
+ * 函数名：RFID_open_door
+ * 函数功能：添加射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+void RFID_open_door(void)
+{
+  u8 id[4] = {0};
+  u8 i,j,cnt=0;
+  //识别卡
+  if(RFID_recognize(id,1) != 0)
+  {
+    return;
+  }
+  //读取空间35-55
+  at24c02_sequential_read(35,20,(u8 *)buff);
+  for(i=0;i<5;i++)//遍历5个卡片ID
+  {
+    for(j=0;j<4;j++)//遍历4个字节
+    {
+      if(buff[i][j] == id[j]) //对比每一组每一个字节
+      {
+        cnt++;//记录每组卡片ID
+      }
+      if(cnt == 4)//如果4个字节都相等
+      {
+        lcd_clear(0,0,240,240,0xffff);
+        lcd_show_zk_str("开门成功，欢迎回家",0,0,32,0x0000,0xffff);
+        delay_ms(100);
+        NV400F_send_data(0x12);
+        LOCK_ON;
+        delay_ms(2000);
+        LOCK_OFF;
+      }
+    }
+    cnt = 0;              
+  }
+  lcd_clear(0,0,240,240,0xffff);
+  ui_flag = 0;//重置ui_flag
+  return;
+}
+
+
+/*****************************
+ * 函数名：RFID_delete_card
+ * 函数功能：删除射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+void RFID_delete_card(void)
+{
+  u8 key_value = 0xff;
+  u8 i,j,cnt=0;
+  u8 id[4] = {0};
+  lcd_clear(0,0,240,240,0xffff);
+  lcd_show_zk_str("删除指定卡片",24,0,32,0x0000,0xffff);
+  lcd_show_zk_str("放置卡片",56,100,32,0x0000,0xffff);
+  lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
+
+
+  //识别卡
+  while(RFID_recognize(id,0) != 0)
+  {
+    key_value = CY8CMBR3116_key_scan();
+    if(key_value == '*')
+    {
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      page_flag = 3;
+      return;
+    }
+  }
+  
+  at24c02_sequential_read(35,20,(u8 *)buff);
+  for(i=0;i<5;i++)//遍历5个卡片ID
+  {
+    for(j=0;j<4;j++)
+    {
+      if(buff[i][j] == id[j]) //对比每一组每一个字节
+      {
+        cnt++;//记录每组卡片ID
+      }
+    }
+    if(cnt == 4)
+    {
+      break;//找到匹配的卡片ID
+    }
+  }
+  if(i == 5)
+  {
+    lcd_show_zk_str("未找到该卡片",24,100,32,0x0000,0xffff);
+    delay_ms(500);
+    lcd_clear(0,0,240,240,0xffff);
+    ui_flag = 0;
+    page_flag = 3;
+    return;
+  }
+  //删除卡片ID
+  for(u8 j=0;j<4;j++)
+  {
+    buff[i][j] = 0xff;
+  }
+  at24c02_write_page(35+i*4,4,(u8 *)buff);
+  //提示用户卡片ID已删除
+  lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
+  NV400F_send_data(0X1c);//操作成功
+  delay_ms(500);
+  lcd_clear(0,0,240,240,0xffff);
+  ui_flag = 0;
+  page_flag = 3;
+  return;
+}
+
+
+
+/*****************************
+ * 函数名：RFID_delete_all_card
+ * 函数功能：删除全部射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+void RFID_delete_all_card(void)
+{
+  u8 key_value = 0xff;
+  u8 i,j;
+  lcd_clear(0,0,240,240,0xffff);
+  lcd_show_zk_str("确认删除?", 56, 0, 32, 0x0000, 0xffff);
+  lcd_show_zk_str("#:确认 *:取消", 15, 98, 32, 0x0000, 0xffff);
+
+
+  while(1)
+  {
+    key_value = CY8CMBR3116_key_scan();
+    if(key_value == '#')
+    {
+      for(i=0;i<5;i++)
+      {
+        for(j=0;j<4;j++)
+        {
+          buff[i][j] = 0xff;
+        }
+      }
+      at24c02_write_page(35,20,(u8 *)buff);
+      //提示用户卡片ID已删除
+      lcd_clear(0,0,240,240,0xffff);
+      lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
+      NV400F_send_data(0X1c);//操作成功
+      delay_ms(500);
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      page_flag = 3;
+      return;
+    }
+    if(key_value == '*')
+    {
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      page_flag = 3;
+      return;
+    }
+  }
+  
+}

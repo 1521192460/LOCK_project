@@ -431,11 +431,18 @@ void password_open_door(void)
         {
             at24c02_read_byte(22,&pwd_len);//读取密码长度标志位
             input_pwd[pwd_cnt-1] = '\0';        //清除最后一位‘#’
+            if(pwd_len == 0 || pwd_len > 19)
+            {
+                pwd_cnt = 0;
+                memset(input_pwd,0,sizeof(input_pwd));
+                key_value = 0xff;
+                return;
+            }
             at24c02_sequential_read(1,pwd_len,read_pwd);//读取密码
             if(strcmp((char *)input_pwd,(char *)read_pwd) == 0)
             {
                 lcd_clear(0,0,240,240,0xffff);
-                lcd_show_zk_str("密码正确，开门成功          ",0,0,32,0x0000,0xffff);
+                lcd_show_zk_str("开门成功，欢迎回家",0,0,32,0x0000,0xffff);
                 delay_ms(100);
                 NV400F_send_data(0x12);
                 error_input = 0;
@@ -488,6 +495,13 @@ void admin_password_check(void)
         {
             at24c02_read_byte(34,&pwd_len);//读取管理员密码长度标志位
             input_pwd[pwd_cnt-1] = '\0';        //清除最后一位‘#’
+            if(pwd_len == 0 || pwd_len > 19)
+            {
+                pwd_cnt = 0;
+                memset(input_pwd,0,sizeof(input_pwd));
+                key_value = 0xff;
+                return;
+            }
             at24c02_sequential_read(23,pwd_len,read_pwd);//读取管理员密码
             if(strcmp((char *)input_pwd,(char *)read_pwd) == 0)
             {
@@ -506,11 +520,12 @@ void admin_password_check(void)
                 lcd_show_zk_str("管理员密码错误，验证失败          ",0,0,32,0x0000,0xffff);
                 delay_ms(1000);
                 lcd_clear(0,0,240,240,0xffff);
+                page_flag = 2;//切换到管理员验证页面（重新输入密码）
+                ui_flag = 0;//重置ui_flag
             }
             pwd_cnt = 0;
             memset(input_pwd,0,sizeof(input_pwd));
             key_value = 0xff;
-            ui_flag = 0;//重置ui_flag
         }  
         if(key_value == '*')
         {
@@ -584,12 +599,13 @@ void change_password_door(void)
                     else
                     {
                         lcd_clear(0,0,240,200,0xffff);
-                        lcd_show_zk_str("两次输入密码不一致，修改失败          ",0,0,32,0x0000,0xffff);
+                        lcd_show_zk_str("两次输入密码不一致，修改失败",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1b);//密码不一致语音
                         delay_ms(1000);
+                        lcd_clear(0,0,240,200,0xffff);
                         lcd_show_zk_str("请输入新密码          ",0,0,32,0x0000,0xffff);
                         usart2_send_byte(0X0C);     //请输入新密码
-                        lcd_clear(0,0,240,200,0xffff);
+                        
                     }
                 }
             }
