@@ -36,16 +36,23 @@ int main()
 	MG200_init();			//MG200指纹初始化
 	CY8CMBR3116_init();		//CY8CMBR3116电容按键初始化
 	RC522_Init();			//RC522初始化
-	//WIFI_init();			//WIFI模块初始化
 
+	lcd_show_zk_str("正在启动中",40,104,32,0x0000,0xffff);
+
+	if(WIFI_init() == 0)
+	{
+		/****************上报开门密码和管理员密码*******************/
+		WIFI_report_password();
+	}
+	lcd_clear(0,0,240,240,0xffff);
 
 	if(KEY1)
 	{
 		//zk_update();		//字库烧录
 		printf("初始化设置\r\n");
 		at24c02_write_byte(0,0);//将初始密码标志位设置为0
-		at24c02_write_cross_page(23,10,"12");//默认管理员密码
-		at24c02_write_byte(34,2);//默认管理员密码长度
+		at24c02_write_cross_page(23,10,"123456");//默认管理员密码
+		at24c02_write_byte(34,6);//默认管理员密码长度
 		MG200_erase_all();
 		for(u8 i=35;i<=55;i++)
 		{
@@ -54,12 +61,8 @@ int main()
 		printf("初始化已完成\r\n");
 	}
 	
-
 	/****************检查初始密码*******************************/
 	check_init_password();
-	
-	/****************上报开门密码和管理员密码*******************/
-	//WIFI_report_password();
 	
 	while(1)
 	{
@@ -71,16 +74,15 @@ int main()
 			if(ui_flag == 0)
 			{
 				ui_flag = 1;
-				NV400F_send_data(0x2f);//请输入密码
 				lcd_show_zk_str("开门页面",56,0,32,0x0000,0xffff);
-				lcd_show_zk_str("请输入密码",40,100,32,0x0000,0xffff);
+				lcd_show_zk_str("欢迎",88,100,32,0x0000,0xffff);
 			}
 			
 			//开门功能:密码开门、指纹开门、射频卡开门
 			password_open_door();
 			MG200_open_door();
 			RFID_open_door();
-			//WIFI_ctrl();
+			WIFI_ctrl();
 			if(KEY1)
 			{
 				page_flag = 2;//切换到管理员验证页面

@@ -862,8 +862,7 @@ void RFID_open_door(void)
     cnt = 0;              
   }
   lcd_clear(0,0,240,240,0xffff);
-  ui_flag = 0;//重置ui_flag
-  return;
+  ui_flag = 0;
 }
 
 
@@ -923,21 +922,39 @@ void RFID_delete_card(void)
     return;
   }
   //删除卡片ID
-  for(u8 j=0;j<4;j++)
-  {
-    buff[i][j] = 0xff;
-  }
-  at24c02_write_page(35+i*4,4,(u8 *)buff);
-  //提示用户卡片ID已删除
-  lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
-  NV400F_send_data(0X1c);//操作成功
-  delay_ms(500);
   lcd_clear(0,0,240,240,0xffff);
-  ui_flag = 0;
-  page_flag = 3;
-  return;
+  lcd_show_zk_str("确认删除?",56,0,32,0x0000,0xffff);
+  lcd_show_zk_str("#:确认 *:取消",15,98,32,0x0000,0xffff);
+  while(1)
+  {
+    key_value = CY8CMBR3116_key_scan();
+    if(key_value == '#')
+    {
+      //删除卡片ID
+      for(u8 j=0;j<4;j++)
+      {
+        buff[i][j] = 0xff;
+      }
+      at24c02_write_page(35+i*4,4,(u8 *)buff);
+      //提示用户卡片ID已删除
+      lcd_clear(0,0,240,240,0xffff);
+      lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
+      NV400F_send_data(0X1c);//操作成功
+      delay_ms(500);
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      page_flag = 3;
+      return;
+    }
+    if(key_value == '*')
+    {
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      page_flag = 3;
+      return;
+    }
+  }
 }
-
 
 
 /*****************************

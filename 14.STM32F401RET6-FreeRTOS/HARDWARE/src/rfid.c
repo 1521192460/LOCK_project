@@ -861,6 +861,8 @@ void RFID_open_door(void)
     }
     cnt = 0;              
   }
+  lcd_clear(0,0,240,240,0xffff);
+  ui_flag = 0;
 }
 
 

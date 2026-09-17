@@ -74,9 +74,8 @@ int main()
 			if(ui_flag == 0)
 			{
 				ui_flag = 1;
-				NV400F_send_data(0x2f);//请输入密码
 				lcd_show_zk_str("开门页面",56,0,32,0x0000,0xffff);
-				lcd_show_zk_str("请输入密码",40,100,32,0x0000,0xffff);
+				lcd_show_zk_str("欢迎",88,100,32,0x0000,0xffff);
 			}
 			
 			//开门功能:密码开门、指纹开门、射频卡开门

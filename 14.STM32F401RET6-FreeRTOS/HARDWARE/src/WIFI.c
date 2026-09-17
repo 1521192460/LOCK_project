@@ -64,27 +64,34 @@ u8 WIFI_init(void)
     usart2_send_str("AT+RST\r\n");
     delay_ms(2000);
     //设置WIFI模式
-    ret = WIFI_send_data("AT+WMODE=1,1\r\n",5000);
-    if(ret != 0)
-    {
-        printf("设置WIFI模式失败\r\n");
-        return 1;
-    }
-    printf("设置WIFI模式成功\r\n");
-    //连接WIFI
-    ret = WIFI_send_data("AT+WJAP=LAPTOP-M4MSRFNU 4738,12345678\r\n",10000);
-    if(ret != 0)
-    {
-        printf("连接WIFI失败\r\n");
-        return 2;
-    }
-    printf("连接WIFI成功\r\n");
+    // ret = WIFI_send_data("AT+WMODE=1,1\r\n",5000);
+    // if(ret != 0)
+    // {
+    //     printf("设置WIFI模式失败\r\n");
+    //     return 1;
+    // }
+    // printf("设置WIFI模式成功\r\n");
+    // //连接WIFI
+    // ret = WIFI_send_data("AT+WJAP=LAPTOP-M4MSRFNU 4738,12345678\r\n",10000);
+    // if(ret != 0)
+    // {
+    //     printf("连接WIFI失败\r\n");
+    //     return 2;
+    // }
+    // printf("连接WIFI成功\r\n");
+    // ret = WIFI_send_data("AT+WAUTOCONN=1\r\n",3000);
+    // if(ret != 0)
+    // {
+    //     printf("开启上电自动重连失败\r\n");
+    //     return 3;
+    // }
+    // printf("开启上电自动重连成功\r\n");
     //设置服务器域名
     ret = WIFI_send_data("AT+MQTT=1,gz-3-mqtt.iot-api.com\r\n",5000);
     if(ret != 0)
     {
         printf("设置服务器域名失败\r\n");
-        return 3;
+        return 4;
     }
     printf("设置服务器域名成功\r\n");
     //设置端口
@@ -92,7 +99,7 @@ u8 WIFI_init(void)
     if(ret != 0)
     {
         printf("设置端口失败\r\n");
-        return 4;
+        return 5;
     }
     printf("设置端口成功\r\n");
     //设置连接方式
@@ -100,7 +107,7 @@ u8 WIFI_init(void)
     if(ret != 0)
     {
         printf("设置连接方式失败\r\n");
-        return 5;
+        return 6;
     }
     printf("设置连接方式成功\r\n");
     //设置用户client id
@@ -108,7 +115,7 @@ u8 WIFI_init(void)
     if(ret != 0)
     {
         printf("设置client id失败\r\n");
-        return 6;
+        return 7;
     }
     printf("设置client id成功\r\n");
     //设置MQTT 用户名
@@ -116,7 +123,7 @@ u8 WIFI_init(void)
     if(ret != 0)
     {
         printf("设置 MQTT 用户名失败\r\n");
-        return 7;
+        return 8;
     }
     printf("设置 MQTT 用户名成功\r\n");
     //设置设置 MQTT 密码
@@ -124,7 +131,7 @@ u8 WIFI_init(void)
     if(ret != 0)
     {
         printf("设置 MQTT 密码失败\r\n");
-        return 8;
+        return 9;
     }
     printf("设置 MQTT 密码成功\r\n");
     //查询 MQTT 连接状态
@@ -132,14 +139,14 @@ u8 WIFI_init(void)
     if(ret != 0)
     {
         printf("查询 MQTT 连接状态失败\r\n");
-        return 9;
+        return 10;
     }
     //连接 MQTT 服务器
     ret = WIFI_send_data("AT+MQTT\r\n",5000);
     if(ret != 0)
     {
         printf("连接 MQTT 服务器失败\r\n");
-        return 10;
+        return 11;
     }
     printf("连接 MQTT 服务器成功\r\n");
     delay_ms(1500);
@@ -147,7 +154,7 @@ u8 WIFI_init(void)
     if(WIFI_send_data("AT+MQTTSUB=attributes/push,0\r\n",3000) != 0)
     {
         printf("订阅主题失败\r\n");
-        return 11;
+        return 12;
     }
     return 0;
 }
