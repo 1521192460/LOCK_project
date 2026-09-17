@@ -4,7 +4,7 @@
 #include "stm32f4xx.h"                 
 #include "stdio.h"
 #include "string.h"
-#include "stdint.h"
+#include "FreeRTOS.h"
 
 #include "key.h"
 #include "led.h"
@@ -25,7 +25,11 @@
 #include "MG200.h"
 #include "WIFI.h"
 #include "rfid.h"
-#include "FreeRTOS.h"
+
+//FreeRTOS
+#include "task.h"
+#include "app.h"
+
 
 
 extern u8 page_flag;

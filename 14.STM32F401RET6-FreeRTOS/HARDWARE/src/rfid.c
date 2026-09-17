@@ -759,7 +759,6 @@ void RFID_add_card(void)
       {
         lcd_clear(0,0,240,240,0xffff);
         ui_flag = 0;
-        page_flag = 3;
         return;
       }
     }
@@ -778,7 +777,6 @@ void RFID_add_card(void)
           delay_ms(500);
           lcd_clear(0,0,240,240,0xffff);
           ui_flag = 0;
-          page_flag = 3;
           return;
         }
       }
@@ -806,7 +804,6 @@ void RFID_add_card(void)
       delay_ms(500);
       lcd_clear(0,0,240,240,0xffff);
       ui_flag = 0;
-      page_flag = 3;
       return;//Ã»ÓÐ¿ÕÎ»
     }
     //3. Ð´Èë¿¨Æ¬ID
@@ -817,7 +814,6 @@ void RFID_add_card(void)
     delay_ms(500);
     lcd_clear(0,0,240,240,0xffff);
     ui_flag = 0;
-    page_flag = 3;
     return;
 }
 
@@ -892,7 +888,6 @@ void RFID_delete_card(void)
     {
       lcd_clear(0,0,240,240,0xffff);
       ui_flag = 0;
-      page_flag = 3;
       return;
     }
   }
@@ -918,7 +913,6 @@ void RFID_delete_card(void)
     delay_ms(500);
     lcd_clear(0,0,240,240,0xffff);
     ui_flag = 0;
-    page_flag = 3;
     return;
   }
   //É¾³ý¿¨Æ¬ID
@@ -943,14 +937,12 @@ void RFID_delete_card(void)
       delay_ms(500);
       lcd_clear(0,0,240,240,0xffff);
       ui_flag = 0;
-      page_flag = 3;
       return;
     }
     if(key_value == '*')
     {
       lcd_clear(0,0,240,240,0xffff);
       ui_flag = 0;
-      page_flag = 3;
       return;
     }
   }
@@ -993,16 +985,13 @@ void RFID_delete_all_card(void)
       delay_ms(500);
       lcd_clear(0,0,240,240,0xffff);
       ui_flag = 0;
-      page_flag = 3;
       return;
     }
     if(key_value == '*')
     {
       lcd_clear(0,0,240,240,0xffff);
       ui_flag = 0;
-      page_flag = 3;
       return;
     }
   }
-  
 }

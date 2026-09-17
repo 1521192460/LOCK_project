@@ -19,6 +19,7 @@ virtualFolder:
         - path: USER/src/dma.c
         - path: USER/src/zk.c
         - path: USER/src/iic.c
+        - path: USER/src/app.c
       folders: []
     - name: HARDWARE
       files:

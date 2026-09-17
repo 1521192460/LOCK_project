@@ -516,9 +516,9 @@ void admin_password_check(void)
                 delay_ms(1000);
                 ui_flag = 0;//重置ui_flag
                 lcd_clear(0,0,240,240,0xffff);
-                page_flag = 3;//切换到管理员页面
                 memset(input_pwd,0,sizeof(input_pwd));
                 key_value = 0xff;
+                vTaskSuspend(admin_check_task_handle);//挂起管理员验证页面任务，进入管理员页面
             }
             else
             {
@@ -526,7 +526,6 @@ void admin_password_check(void)
                 lcd_show_zk_str("管理员密码错误，验证失败",0,0,32,0x0000,0xffff);
                 delay_ms(1000);
                 lcd_clear(0,0,240,240,0xffff);
-                page_flag = 2;//切换到管理员验证页面（重新输入密码）
                 ui_flag = 0;//重置ui_flag
             }
             pwd_cnt = 0;
@@ -535,11 +534,11 @@ void admin_password_check(void)
         }  
         if(key_value == '*')
         {
-            page_flag = 1;//切换到开锁页面
             ui_flag = 0;//重置ui_flag
             memset(input_pwd,0,sizeof(input_pwd));
             lcd_clear(0,0,240,240,0xffff);
             key_value = 0xff;
+            vTaskResume(open_page_task_handle);//解挂开门页面任务
         }
     }
 }
@@ -601,7 +600,6 @@ void change_password_door(void)
                         lcd_clear(0,0,240,240,0xffff);
                         WIFI_send_data((u8 *)buff,3000);
                         ui_flag = 0;//重置ui_flag
-                        page_flag = 3;//切换到管理员界面
                         return;
                     }
                     else
@@ -621,7 +619,6 @@ void change_password_door(void)
             }
             if(key_value == '*')
             {
-                page_flag = 3;//切换到管理员界面
                 ui_flag = 0;//重置ui_flag
                 memset(first_input,0,sizeof(first_input));
                 memset(second_input,0,sizeof(second_input));
@@ -693,7 +690,6 @@ void change_password_admin(void)
                         WIFI_send_data((u8 *)buff,3000);
                         lcd_clear(0,0,240,240,0xffff);
                         ui_flag = 0;//重置ui_flag
-                        page_flag = 3;//切换到管理员界面
                         return;
                     }
                     else
@@ -713,7 +709,6 @@ void change_password_admin(void)
             }
             if(key_value == '*')
             {
-                page_flag = 3;//切换到管理员界面
                 ui_flag = 0;//重置ui_flag
                 memset(first_input,0,sizeof(first_input));
                 memset(second_input,0,sizeof(second_input));

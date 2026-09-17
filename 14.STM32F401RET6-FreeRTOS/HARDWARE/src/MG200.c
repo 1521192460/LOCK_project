@@ -402,7 +402,6 @@ void MG200_register(void)
 
     // 返回管理员页面
     lcd_clear(0,0,240,240,0xffff);
-    page_flag = 3;
     ui_flag = 0;
 }
 
@@ -433,7 +432,6 @@ void MG200_delete_id(void)
         if(key == '*')
         {
             lcd_clear(0, 0, 240, 240, 0xffff);
-            page_flag = 3;
             ui_flag = 0;
             return;
         }
@@ -451,7 +449,6 @@ void MG200_delete_id(void)
         lcd_show_zk_str("指纹未注册", 24, 98, 32, 0x0000, 0xffff);
         delay_ms(1000);
         lcd_clear(0, 0, 240, 240, 0xffff);
-        page_flag = 3;
         ui_flag = 0;
         return;
     }
@@ -477,7 +474,6 @@ void MG200_delete_id(void)
         }
     }
     lcd_clear(0, 0, 240, 240, 0xffff);
-    page_flag = 3;
     ui_flag = 0;
 }
 
@@ -515,6 +511,5 @@ void MG200_delete_all(void)
         }
     }
     lcd_clear(0, 0, 240, 240, 0xffff);
-    page_flag = 3;
     ui_flag = 0;
 }
