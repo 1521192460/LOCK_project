@@ -127,7 +127,7 @@ void USART2_IRQHandler(void)
         u2.len = 0;
         // 中断标志位置1
         u2.flag = 1;
-        //printf("%s",u2.buff);
+        printf("%s",u2.buff);
 
     }
 }

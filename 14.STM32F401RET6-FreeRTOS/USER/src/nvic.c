@@ -1,6 +1,6 @@
 #include "nvic.h"
 
-
+status_t status;
 
 /*************************************
  * 函数名：USART1_IRQHandler
@@ -12,7 +12,7 @@
 USART_STATUE u1 = {0};
 void USART1_IRQHandler(void)
 {
-    static u32 zk_addr = 0;
+    // static u32 zk_addr = 0;
     //如果是接收中断
     if(USART_GetITStatus(USART1,USART_IT_RXNE))
     {
@@ -20,13 +20,13 @@ void USART1_IRQHandler(void)
         USART_ClearITPendingBit(USART1, USART_IT_RXNE);
         /***********************************接收数据使用**************************************************/
         //接收数据
-        // u1.buff[u1.len++] = USART_ReceiveData(USART1);
+        u1.buff[u1.len++] = USART_ReceiveData(USART1);
         
         /***********************************烧录字库文件使用**************************************************/
-        file_flag = 1;//已发送文件
-        u8 data = USART_ReceiveData(USART1);  // 接收数据
-        w25q64_write_page(zk_addr, 1, &data); 
-        zk_addr++;
+        // file_flag = 1;//已发送文件
+        // u8 data = USART_ReceiveData(USART1);  // 接收数据
+        // w25q64_write_page(zk_addr, 1, &data); 
+        // zk_addr++;
     }
     //如果是空闲中断
     if(USART_GetITStatus(USART1,USART_IT_IDLE))
@@ -36,18 +36,18 @@ void USART1_IRQHandler(void)
         USART1->DR;
         /***********************************接收数据使用**************************************************/
         // 接收最后一位补'\0'
-        // u1.buff[u1.len] = '\0';
+        u1.buff[u1.len] = '\0';
         // 清空接收数据缓冲区
-        // u1.len = 0;
+        u1.len = 0;
         // 中断标志位置1
-        // u1.flag = 1;
+        u1.flag = 1;
         /***********************************烧录字库使用**************************************************/
         //烧录完成标志位
-        if(zk_addr >= 0x001D3374)//当写入到字库文件结束地址时，烧录完成
-        {
-            update_flag = 0;
-            file_flag = 0;
-        }
+        // if(zk_addr >= 0x001D3374)//当写入到字库文件结束地址时，烧录完成
+        // {
+        //     update_flag = 0;
+        //     file_flag = 0;
+        // }
     }
 }
 
@@ -129,5 +129,34 @@ void USART2_IRQHandler(void)
         u2.flag = 1;
         //printf("%s",u2.buff);
 
+    }
+}
+
+
+
+
+
+/*************************************
+ * 函数名：TIM2_IRQHandler
+ * 函数功能：定时器2更新中断服务函数
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ *************************************/
+u16 timer4_event[5] = {0,1000};
+void TIM4_IRQHandler(void)
+{
+    //判断是定时器4的更新中断
+    if(TIM_GetITStatus(TIM4,TIM_IT_Update) == SET)
+    {
+        //清除中断标志位
+        TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+        timer4_event[1]++;
+        if(timer4_event[1] >= 1000)
+        {
+            timer4_event[1] = 0;
+            //时间更新
+            status.time_updata = 1;
+        }
     }
 }

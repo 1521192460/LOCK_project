@@ -268,7 +268,7 @@ void lcd_draw_point(u8 x,u8 y,u16 color)
  *          u8 y          	字体起始y坐标
  * 			u16 font_color	字体颜色
  * 			u16 font_bg		字体背景颜色
- * 			u8 size			根据行数选择字体大小：16:8x16	24:12x24	32:16x32 
+ * 			u8 size			根据行数选择字体大小：16:8x16	24:12x24	32:16x32  64:32x64
  * 函数返回值：void
  * 函数说明:
  *******************************/
@@ -389,7 +389,7 @@ void lcd_show_chinese(u8 *font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
 void lcd_show_zk_font(u8 *font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
 {
 	//存放字体数据的缓冲区
-	u8 font_buff[128];
+	u8 font_buff[256];
 
 	/*计算字体数据的偏移量*/
 	u32 addr = 0;
@@ -425,19 +425,20 @@ void lcd_show_zk_font(u8 *font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
  * 			u8 size			根据行数选择字体大小：8:8x8 16:16*16	32:16x32 
  * 函数返回值：void
  * 函数说明:
- *                                           大小              偏移量：对0x00000000进行偏移           
- *	C:\Users\安圣SAMA\Desktop\ZK\HZK16.bin   0x0003FE46        0x00000000             
- *	C:\Users\安圣SAMA\Desktop\ZK\HZK24.bin   0x0008FC16        0x0003FE46             
- *	C:\Users\安圣SAMA\Desktop\ZK\HZK32.bin   0x000FF906        0x000CFA5C             
- *	C:\Users\安圣SAMA\Desktop\ZK\ASC16.bin   0x00000806        0x001CF362             
- *	C:\Users\安圣SAMA\Desktop\ZK\ASC24.bin   0x00001806        0x001CFB68             
- *	C:\Users\安圣SAMA\Desktop\ZK\ASC32.bin   0x00002006        0x001D136E             
+ *                                           								大小              偏移量：对0x00000000进行偏移           
+ 1      D:\MCU\智能锁项目\2.软件资料\字库软件\ZK\第二版字库\HZK16.bin        0x0003FE46        0x00000000             
+ 2      D:\MCU\智能锁项目\2.软件资料\字库软件\ZK\第二版字库\HZK24.bin        0x0008FC16        0x0003FE46             
+ 3      D:\MCU\智能锁项目\2.软件资料\字库软件\ZK\第二版字库\HZK32.bin        0x000FF906        0x000CFA5C             
+ 4      D:\MCU\智能锁项目\2.软件资料\字库软件\ZK\第二版字库\ASC16.bin        0x00000806        0x001CF362             
+ 5      D:\MCU\智能锁项目\2.软件资料\字库软件\ZK\第二版字库\ASC24.bin        0x00001806        0x001CFB68             
+ 6      D:\MCU\智能锁项目\2.软件资料\字库软件\ZK\第二版字库\ASC32.bin        0x00002006        0x001D136E             
+ 7      D:\MCU\智能锁项目\2.软件资料\字库软件\ZK\第二版字库\ASC64.bin        0x00008006        0x001D3374                                      
  *
 ********************************/
 void lcd_show_zk_char(u8 font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
 {
 	//存放字体数据的缓冲区
-	u8 char_buff[64];
+	u8 char_buff[256];
 
 	/*计算字体数据的偏移量*/
 	u32 addr = 0;
@@ -448,7 +449,7 @@ void lcd_show_zk_char(u8 font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
 		char_size++;
 	}
 	//计算一个字的字模数据大小
-	u8 char_data = size * char_size;
+	u16 char_data = size * char_size;
 	//根据区码和位码求字体数据的偏移量
 	addr =  font * char_data;
 	//根据字体大小选择不同的字库
@@ -458,6 +459,7 @@ void lcd_show_zk_char(u8 font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
 		case 16:font_addr = 0x001CF362;break;
 		case 24:font_addr = 0x001CFB68;break;
 		case 32:font_addr = 0x001D136E;break;
+		case 64:font_addr = 0x001D3374;break;
 	}
 	//读取数据
 	w25q64_read_data(font_addr+addr,char_data,char_buff);

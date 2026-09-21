@@ -14,7 +14,7 @@ void zk_update(void)
 {
     //在w25q64中清除1.82M字节（字库文件大小）
     printf("正在清除\r\n");
-    for(u8 i=0;i<30;i++)
+    for(u8 i=0;i<32;i++)
     {
         w25q64_block_erase(i*65536);
     }

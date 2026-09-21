@@ -343,7 +343,7 @@ void check_init_password(void)
     }
     else//是第一次开机
     {
-        lcd_show_zk_str("欢迎使用智能锁",0,0,32,0x0000,0xffff);
+        lcd_show_zk_str("欢迎使用智能锁",4,68,32,0x0000,0xffff);
         NV400F_send_data(0x2d); 
         delay_ms(2000);
         lcd_clear(0,0,240,240,0xffff);
@@ -355,7 +355,7 @@ void check_init_password(void)
     u8 pwd_input = 1;           //记录第几次输入密码
     u8 first_pwd[20] = {0};//第一次输入密码保存缓冲区
     u8 second_pwd[20] = {0};//第二次输入密码保存缓冲区
-    u8 buff[50] = {0};//发送数据缓冲区
+    u8 buff[80] = {0};//发送数据缓冲区
     //设置初始密码
     while(1)
     {
@@ -393,7 +393,7 @@ void check_init_password(void)
                         at24c02_write_cross_page(1,pwd_cnt-1,second_pwd);//写入初始密码
                         at24c02_write_byte(0,1);//写入初始密码标志位
                         lcd_clear(0,0,240,200,0xffff);
-                        return;
+                        break;
                     }
                     else
                     {                 
@@ -595,6 +595,7 @@ void change_password_door(void)
                         lcd_clear(0,0,240,200,0xffff);
                         lcd_show_zk_str("密码修改成功",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1C);//操作成功语言
+                        delay_ms(300);
                         at24c02_write_cross_page(1,pwd_len-1,second_input);//写入开门密码
                         at24c02_write_byte(22,pwd_len-1);//写开门密码长度标志位
                         lcd_clear(0,0,240,240,0xffff);
@@ -685,6 +686,7 @@ void change_password_admin(void)
                         lcd_clear(0,0,240,200,0xffff);
                         lcd_show_zk_str("密码修改成功",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1C);//操作成功语言
+                        delay_ms(300);
                         at24c02_write_cross_page(23,pwd_len-1,second_input);//写入管理员密码
                         at24c02_write_byte(34,pwd_len-1);//写管理员密码长度标志位
                         WIFI_send_data((u8 *)buff,3000);

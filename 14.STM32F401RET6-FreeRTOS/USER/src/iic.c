@@ -31,8 +31,8 @@ void iic3_pin_init(void)
     GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     //初始电平状态
-    IIC3_SDA_L;
-    IIC3_SCK_L;
+    IIC3_SDA_H;
+    IIC3_SCK_H;
 
 }
 
@@ -46,6 +46,9 @@ void iic3_pin_init(void)
  ******************************/
 void iic3_start(void)
 {
+    IIC3_SCK_L;
+        //延时
+        delay_us(IIC3_DELAY);
     //注意：在起始信号和停止信号中，先动数据线
     //拉高数据线
     IIC3_SDA_H;
@@ -68,6 +71,9 @@ void iic3_start(void)
  ******************************/
 void iic3_stop(void)
 {
+    IIC3_SCK_L;
+        //延时
+        delay_us(IIC3_DELAY);
     //拉低数据线
     IIC3_SDA_L;
     //拉高时钟线

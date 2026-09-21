@@ -20,6 +20,7 @@ virtualFolder:
         - path: USER/src/zk.c
         - path: USER/src/iic.c
         - path: USER/src/app.c
+        - path: USER/src/rtc.c
       folders: []
     - name: HARDWARE
       files:

@@ -122,6 +122,8 @@ void lcd_pin_init(void)
     SPI_Init(SPI2,&SPI_InitStruct);
     //使能SPI2
     SPI_Cmd(SPI2,ENABLE);
+    //使能SPI2 DMA
+    SPI_I2S_DMACmd(SPI2, SPI_I2S_DMAReq_Tx, ENABLE);  
 
     //拉高片选
     LCD_CS_H;

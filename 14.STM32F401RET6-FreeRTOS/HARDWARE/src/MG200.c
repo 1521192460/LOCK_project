@@ -158,14 +158,17 @@ u8 MG200_enroll(u8 id)
     u8 param = 0;
     u8 result = 0;
     //1.手册要求需要提取特征图像3-5次
-    const u8 capture_cnt[3] = {0x00, 0x01, 0x02};
+    u8 str[15] = {0};   //显示采集次数的字符串
     for(u8 i = 0; i < 3; i++)
     {
+        sprintf((char *)str,"第%d次采集",i+1);
+        lcd_show_zk_str(str,40,98,32,0x0000,0xffff);
         do
-            ret = MG200_get_fingerprint(capture_cnt[i]);
+            ret = MG200_get_fingerprint(i);
         while(ret != 0 && ret != MG200_CANCEL);
         if(ret == MG200_CANCEL)
             return MG200_CANCEL;   // 用户取消，不再继续
+        
     }
     //2.发送注册指纹数据包----参数：0x00表示注册的id号，00为随机分配
     MG200_send_packet(0x7f,id);
@@ -361,11 +364,10 @@ void MG200_register(void)
 
     lcd_clear(0,0,240,240,0xffff);
     lcd_show_zk_str("采集指纹",56,0,32,0x0000,0xffff);
-    lcd_show_zk_str("请放手指",56,98,32,0x0000,0xffff);
     lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
     NV400F_send_data(0X10);//请放手指语音
 
-    u8 id = MG200_get_user_num() + 1;   // 下一个可用 ID
+    u8 id = MG200_get_user_num();   // 下一个可用 ID
     if(id > 100)                         // 指纹库满(100 枚)
     {
         lcd_clear(0,0,240,240,0xffff);
@@ -381,7 +383,6 @@ void MG200_register(void)
         {
             lcd_clear(0,0,240,240,0xffff);
             ui_flag = 0;
-            page_flag = 3;
             return;
         }
 
@@ -394,7 +395,7 @@ void MG200_register(void)
         }
         else                             // 注册失败
         {
-            lcd_show_zk_str("注册失败",56,98,32,0x0000,0xffff);
+            lcd_show_zk_str("指纹已注册", 40,98,32,0x0000,0xffff);
             NV400F_send_data(0x32);
         }
         delay_ms(1000);
@@ -446,7 +447,7 @@ void MG200_delete_id(void)
         lcd_clear(0, 32, 240, 240, 0xffff);
         NV400F_send_data(0X1a);//验证失败语音
         lcd_show_zk_str("删除指定指纹", 24, 0, 32, 0x0000, 0xffff);
-        lcd_show_zk_str("指纹未注册", 24, 98, 32, 0x0000, 0xffff);
+        lcd_show_zk_str("指纹未注册", 40, 98, 32, 0x0000, 0xffff);
         delay_ms(1000);
         lcd_clear(0, 0, 240, 240, 0xffff);
         ui_flag = 0;

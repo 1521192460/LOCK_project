@@ -848,17 +848,17 @@ void RFID_open_door(void)
       {
         lcd_clear(0,0,240,240,0xffff);
         lcd_show_zk_str("开门成功，欢迎回家",0,0,32,0x0000,0xffff);
-        delay_ms(100);
         NV400F_send_data(0x12);
         LOCK_ON;
-        delay_ms(2000);
+        delay_ms(1500);
         LOCK_OFF;
       }
     }
     cnt = 0;              
   }
-  lcd_clear(0,0,240,240,0xffff);
   ui_flag = 0;
+  lcd_clear(0,0,240,240,0xffff);
+  return;
 }
 
 

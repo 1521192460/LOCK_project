@@ -98,15 +98,15 @@
         {
             "name": "SMARTLOCK",
             "includePath": [
-                "d:\\MCU\\智能锁项目\\3.程序代码\\13.STM32F401RET6-WIFI模块\\USER\\inc",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\13.STM32F401RET6-WIFI模块\\HARDWARE\\inc",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\13.STM32F401RET6-WIFI模块\\CMSIS\\Include",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\13.STM32F401RET6-WIFI模块\\CMSIS",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\13.STM32F401RET6-WIFI模块\\STM32F4xx_StdPeriph_Driver\\inc",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\12.STM32F401RET6-WIFI模块\\USER\\inc",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\12.STM32F401RET6-WIFI模块\\HARDWARE\\inc",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\12.STM32F401RET6-WIFI模块\\CMSIS\\Include",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\12.STM32F401RET6-WIFI模块\\CMSIS",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\12.STM32F401RET6-WIFI模块\\STM32F4xx_StdPeriph_Driver\\inc",
                 "D:\\Keil_v5\\ARM\\ARMCC\\include",
                 "D:\\Keil_v5\\ARM\\ARMCC\\include\\rw",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\13.STM32F401RET6-WIFI模块\\USER\\src",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\13.STM32F401RET6-WIFI模块\\STM32F4xx_StdPeriph_Driver\\src"
+                "d:\\MCU\\智能锁项目\\3.程序代码\\12.STM32F401RET6-WIFI模块\\USER\\src",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\12.STM32F401RET6-WIFI模块\\STM32F4xx_StdPeriph_Driver\\src"
             ],
             "defines": [
                 "STM32F401xx",

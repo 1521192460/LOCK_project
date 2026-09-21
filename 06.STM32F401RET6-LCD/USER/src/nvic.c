@@ -27,6 +27,7 @@ void USART1_IRQHandler(void)
         u8 data = USART_ReceiveData(USART1);  // 接收数据
         w25q64_write_page(zk_addr, 1, &data); 
         zk_addr++;
+        u1.len++;
     }
     //如果是空闲中断
     if(USART_GetITStatus(USART1,USART_IT_IDLE))
@@ -43,7 +44,7 @@ void USART1_IRQHandler(void)
         // u1.flag = 1;
         /***********************************烧录字库使用**************************************************/
         //烧录完成标志位
-        if(zk_addr >= 0x001D3374)//当写入到字库文件结束地址时，烧录完成
+        if(zk_addr >= 0x001DB37A)//当写入到字库文件结束地址时，烧录完成
         {
             update_flag = 0;
             file_flag = 0;

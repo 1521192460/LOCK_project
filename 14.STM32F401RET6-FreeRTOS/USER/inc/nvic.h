@@ -10,6 +10,14 @@ typedef struct
     u8  flag;        //接收数据完成标志位
 }USART_STATUE;
 
+
+typedef struct status
+{
+    u8 time_updata;
+}status_t;
+
+extern status_t status;
+
 extern USART_STATUE u1;
 extern USART_STATUE u6;
 extern USART_STATUE u2;

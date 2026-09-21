@@ -98,15 +98,15 @@
         {
             "name": "SMARTLOCK",
             "includePath": [
-                "d:\\MCU\\智能锁项目\\3.程序代码\\6.STM32F401RET6-LCD\\USER\\inc",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\6.STM32F401RET6-LCD\\HARDWARE\\inc",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\6.STM32F401RET6-LCD\\CMSIS\\Include",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\6.STM32F401RET6-LCD\\CMSIS",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\6.STM32F401RET6-LCD\\STM32F4xx_StdPeriph_Driver\\inc",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\06.STM32F401RET6-LCD\\USER\\inc",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\06.STM32F401RET6-LCD\\HARDWARE\\inc",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\06.STM32F401RET6-LCD\\CMSIS\\Include",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\06.STM32F401RET6-LCD\\CMSIS",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\06.STM32F401RET6-LCD\\STM32F4xx_StdPeriph_Driver\\inc",
                 "D:\\Keil_v5\\ARM\\ARMCC\\include",
                 "D:\\Keil_v5\\ARM\\ARMCC\\include\\rw",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\6.STM32F401RET6-LCD\\USER\\src",
-                "d:\\MCU\\智能锁项目\\3.程序代码\\6.STM32F401RET6-LCD\\STM32F4xx_StdPeriph_Driver\\src"
+                "d:\\MCU\\智能锁项目\\3.程序代码\\06.STM32F401RET6-LCD\\USER\\src",
+                "d:\\MCU\\智能锁项目\\3.程序代码\\06.STM32F401RET6-LCD\\STM32F4xx_StdPeriph_Driver\\src"
             ],
             "defines": [
                 "STM32F401xx",

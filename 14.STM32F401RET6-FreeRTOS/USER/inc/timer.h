@@ -7,6 +7,6 @@
 
 //º¯ÊıÉùÃ÷
 void timer9_delay_ms(u16 ms);
-
+void timer4_interrupt_ms(u16 ms);
 
 #endif

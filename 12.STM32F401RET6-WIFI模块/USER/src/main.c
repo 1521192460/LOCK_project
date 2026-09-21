@@ -35,7 +35,7 @@ int main()
 	NV400F_init();			//NV400F语音初始化
 	MG200_init();			//MG200指纹初始化
 	CY8CMBR3116_init();		//CY8CMBR3116电容按键初始化
-	//WIFI_init();			//WIFI模块初始化
+	WIFI_init();			//WIFI模块初始化
 
 
 	if(KEY1)
@@ -54,7 +54,7 @@ int main()
 	check_init_password();
 	
 	/****************上报开门密码和管理员密码*******************/
-	//WIFI_report_password();
+	WIFI_report_password();
 
 	
 

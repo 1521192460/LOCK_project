@@ -6,7 +6,8 @@
 
 
 //º¯ÊıÉùÃ÷
-void dma_init(void);
-void dma_send_data(u8 *data, u32 size);
+void dma1_init(void);
+void dma1_spi2_tx(u8 *buf, u16 len);
+
 
 #endif

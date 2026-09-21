@@ -10,5 +10,8 @@ extern TaskHandle_t admin_page_task_handle;
 
 //º¯ÊıÉùÃ÷
 void start_task(void *ptr);
+void timer1_callback(void);
+void timer2_callback(void);
+
 
 #endif

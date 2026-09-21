@@ -9,7 +9,7 @@
 #define IIC3_SDA_H (GPIO_SetBits(GPIOC, GPIO_Pin_9))
 #define IIC3_SDA_L (GPIO_ResetBits(GPIOC, GPIO_Pin_9))
 #define IIC3_SDA_IN (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_9))
-#define IIC3_DELAY 6
+#define IIC3_DELAY 3
 
 //º¯ÊýÉùÃ÷
 void iic3_pin_init(void);

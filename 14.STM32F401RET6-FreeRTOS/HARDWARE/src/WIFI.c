@@ -59,34 +59,36 @@ u8 WIFI_init(void)
     //串口2初始化
     usart2_init(115200);
     //发送AT测试指令
-    usart2_send_str("AT\r\n");
+    usart2_send_str("ATE0\r\n");
+    usart2_send_str("AT+SYSMSG=1,0,0\r\n");
     //恢复出厂设置
-    usart2_send_str("AT+RST\r\n");
-    delay_ms(2000);
+    // usart2_send_str("AT+RST\r\n");
+    // delay_ms(2000);
     //设置WIFI模式
-    // ret = WIFI_send_data("AT+WMODE=1,1\r\n",5000);
-    // if(ret != 0)
-    // {
-    //     printf("设置WIFI模式失败\r\n");
-    //     return 1;
-    // }
-    // printf("设置WIFI模式成功\r\n");
-    // //连接WIFI
-    // ret = WIFI_send_data("AT+WJAP=LAPTOP-M4MSRFNU 4738,12345678\r\n",10000);
-    // if(ret != 0)
-    // {
-    //     printf("连接WIFI失败\r\n");
-    //     return 2;
-    // }
-    // printf("连接WIFI成功\r\n");
-    // ret = WIFI_send_data("AT+WAUTOCONN=1\r\n",3000);
-    // if(ret != 0)
-    // {
-    //     printf("开启上电自动重连失败\r\n");
-    //     return 3;
-    // }
-    // printf("开启上电自动重连成功\r\n");
-    //设置服务器域名
+    ret = WIFI_send_data("AT+WMODE=1,0\r\n",5000);
+    if(ret != 0)
+    {
+        printf("设置WIFI模式失败\r\n");
+        return 1;
+    }
+    printf("设置WIFI模式成功\r\n");
+    //连接WIFI
+    ret = WIFI_send_data("AT+WJAP=Class8,12345678\r\n",10000);
+    if(ret != 0)
+    {
+        printf("连接WIFI失败\r\n");
+        return 2;
+    }
+    printf("连接WIFI成功\r\n");
+    //设置sntp时区和服务器
+    ret = WIFI_send_data("AT+SNTPTIMECFG=1,8,ntp1.aliyun.com,ntp2.aliyun.com,ntp3.aliyun.com\r\n",5000);
+    if(ret != 0)
+    {
+        printf("设置sntp时区和服务器区失败\r\n");
+        return 3;
+    }
+    printf("设置sntp时区和服务器区成功\r\n");
+    // 设置服务器域名
     ret = WIFI_send_data("AT+MQTT=1,gz-3-mqtt.iot-api.com\r\n",5000);
     if(ret != 0)
     {
@@ -111,7 +113,7 @@ u8 WIFI_init(void)
     }
     printf("设置连接方式成功\r\n");
     //设置用户client id
-    ret = WIFI_send_data("AT+MQTT=4,2233344\r\n",5000);
+    ret = WIFI_send_data("AT+MQTT=4,bbccdd\r\n",5000);
     if(ret != 0)
     {
         printf("设置client id失败\r\n");
@@ -149,13 +151,14 @@ u8 WIFI_init(void)
         return 11;
     }
     printf("连接 MQTT 服务器成功\r\n");
-    delay_ms(1500);
-    //订阅主题
-    if(WIFI_send_data("AT+MQTTSUB=attributes/push,0\r\n",3000) != 0)
+    delay_ms(5000);
+    ret = WIFI_send_data("AT+MQTTSUB=attributes/push,0\r\n",5000);
+    if(ret != 0)
     {
-        printf("订阅主题失败\r\n");
+        printf("订阅属性Topic失败\r\n");
         return 12;
-    }
+    }   
+    printf("订阅属性Topic成功\r\n");
     return 0;
 }
 
@@ -175,7 +178,7 @@ void WIFI_ctrl(void)
     if(u2.flag == 1)
     {
         //显示云端下发数据
-        printf("%s\r\n",u2.buff);
+        //printf("%s\r\n",u2.buff);
         //清除接收数据标志位
         u2.flag = 0;
         if(strstr((const char*)u2.buff,"{\"dooropen\":1}") != NULL)
@@ -194,14 +197,14 @@ void WIFI_ctrl(void)
         if(strstr((const char*)u2.buff,"\"doorpwd\"") != NULL)
         {
             //定位到开门密码值位置并提取
-            sscanf(strstr((const char*)u2.buff,"\"doorpwd\""),"\"doorpwd\":\"%[^\"]\"",open_password);;
+            sscanf(strstr((const char*)u2.buff,"\"doorpwd\""),"\"doorpwd\":\"%[^\"]\"",open_password);
             len = strlen((char*)open_password);
             //写入开门密码到at24c02空间1-20
             at24c02_write_cross_page(1,len,open_password);
             //写入开门密码长度到at24c02空间22
             at24c02_write_byte(22,len);
         }
-        if(strstr((const char*)u2.buff+35,"{\"adminpwd\":}") != NULL)
+        if(strstr((const char*)u2.buff,"{\"adminpwd\":}") != NULL)
         {
             //定位到管理员密码值位置并提取
             sscanf(strstr((const char*)u2.buff,"\"adminpwd\""),"\"adminpwd\":\"%[^\"]\"",admin_password);
@@ -226,12 +229,67 @@ void WIFI_report_password(void)
 {
     u8 open_password[20] = {0};
 	u8 admin_password[10] = {0};
-    u8 report_password[80] = {0};
-	at24c02_read_byte(22,&open_password[19]);//读取开门密码长度
-	at24c02_sequential_read(1,open_password[19],open_password);//读取开门密码
-	at24c02_read_byte(34,&admin_password[9]);//读取管理员密码长度
-	at24c02_sequential_read(23,admin_password[9],admin_password);//读取管理员密码
+    static u8 open_len,admin_len;
+    u8 report_password[100] = {0};
+	at24c02_read_byte(22,&open_len);//读取开门密码长度
+	at24c02_sequential_read(1,open_len,open_password);//读取开门密码 
+	at24c02_read_byte(34,&admin_len);//读取管理员密码长度
+	at24c02_sequential_read(23,admin_len,admin_password);//读取管理员密码
     //上报开门密码和管理员密码
     sprintf((char*)report_password,"AT+MQTTPUB=attributes,0,0,{\"doorpwd\":\"%s\"\\,\"adminpwd\":\"%s\"}\r\n",open_password,admin_password);
     WIFI_send_data(report_password,3000);
+}
+
+
+/*************************
+函数名:WIFI_get_time
+函数功能：获取时间日期
+函数参数：
+        u8 *hour
+        u8 *min
+        u8 *sec
+函数返回值：u8
+函数说明：
+*************************/  
+u8 WIFI_get_time(u8 *hour, u8 *min, u8 *sec)
+{
+    const char *p = NULL;
+    unsigned int h = 0, m = 0, s = 0;
+    if(WIFI_send_data("AT+SNTPTIME?\r\n", 5000) != 0)
+    {
+        printf("获取时间失败\r\n");
+        return 1;
+    }
+
+    p = strstr((const char*)u2.buff, "+SNTPTIME:");
+    if(p == NULL) return 1;         //未找到时间字符串
+
+    //获取时间字符数据
+    sscanf(p, "+SNTPTIME:%*3s %*3s %*u %2u:%2u:%2u", &h, &m, &s);
+    //将数据传递给hour,min,sec
+    *hour = (u8)h;
+    *min  = (u8)m;
+    *sec  = (u8)s;
+    return 0;
+}
+
+
+/*************************
+函数名:WIFI_check_time
+函数功能：检查NTP
+函数参数：无
+函数返回值：u8
+函数说明：
+*************************/ 
+u8 WIFI_check_time(void)
+{
+    u8 h=0,m=0,s=0;
+    if(WIFI_get_time(&h,&m,&s) != 0) 
+        return 1;
+    RTC_t t = {0};
+    //将获取到的时间赋值给RTC_t结构体
+    t.hour = h; t.min = m; t.sec = s;
+    //设置RTC时间
+    set_time(t);      // 时分秒进 RTC
+    return 0;
 }

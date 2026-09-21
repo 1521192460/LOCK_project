@@ -155,7 +155,7 @@ void w25q64_write_page(u32 addr,u8 data_size,u8 *data)
  * 函数返回值：无
  * 函数说明：发送指令0x03，页读
  * *********************************/
-void w25q64_read_data(u32 addr,u8 data_size,u8 *data)
+void w25q64_read_data(u32 addr,u16 data_size,u8 *data)
 {
     //拉低片选
     W25Q64_CS_L;

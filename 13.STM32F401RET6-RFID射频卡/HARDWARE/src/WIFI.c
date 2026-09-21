@@ -227,10 +227,11 @@ void WIFI_report_password(void)
     u8 open_password[20] = {0};
 	u8 admin_password[10] = {0};
     u8 report_password[80] = {0};
-	at24c02_read_byte(22,&open_password[19]);//读取开门密码长度
-	at24c02_sequential_read(1,open_password[19],open_password);//读取开门密码
-	at24c02_read_byte(34,&admin_password[9]);//读取管理员密码长度
-	at24c02_sequential_read(23,admin_password[9],admin_password);//读取管理员密码
+    u8 open_len,admin_len;
+	at24c02_read_byte(22,&open_len);//读取开门密码长度
+	at24c02_sequential_read(1,open_len,open_password);//读取开门密码
+	at24c02_read_byte(34,&admin_len);//读取管理员密码长度
+	at24c02_sequential_read(23,admin_len,admin_password);//读取管理员密码
     //上报开门密码和管理员密码
     sprintf((char*)report_password,"AT+MQTTPUB=attributes,0,0,{\"doorpwd\":\"%s\"\\,\"adminpwd\":\"%s\"}\r\n",open_password,admin_password);
     WIFI_send_data(report_password,3000);

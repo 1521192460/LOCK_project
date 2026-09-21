@@ -14,6 +14,7 @@
 #include "motor.h"
 #include "timer.h"  
 #include "spi.h"
+#include "rtc.h"
 #include "w25q64.h"
 #include "lcd.h"
 #include "dma.h"
@@ -28,10 +29,10 @@
 
 //FreeRTOS
 #include "task.h"
+#include "timers.h"
 #include "app.h"
 
 
 
-extern u8 page_flag;
 extern u8 ui_flag;
 #endif

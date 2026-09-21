@@ -60,6 +60,8 @@ void WIFI_init(void)
     usart2_init(115200);
     //发送AT测试指令
     usart2_send_str("AT\r\n");
+    //关闭回显
+    usart2_send_str("ATE0\r\n");
     //恢复出厂设置
     usart2_send_str("AT+RST\r\n");
     delay_ms(2000);
@@ -72,13 +74,21 @@ void WIFI_init(void)
     }
     printf("设置WIFI模式成功\r\n");
     //连接WIFI
-    ret = WIFI_send_data("AT+WJAP=LAPTOP-M4MSRFNU 4738,12345678\r\n",10000);
+    ret = WIFI_send_data("AT+WJAP=Class8,12345678\r\n",20000);
     if(ret != 0)
     {
         printf("连接WIFI失败\r\n");
         return;
     }
     printf("连接WIFI成功\r\n");
+    //设置sntp时区和服务器
+    ret = WIFI_send_data("AT+SNTPTIMECFG=1,8,ntp1.aliyun.com,ntp2.aliyun.com,ntp3.aliyun.com\r\n",5000);
+    if(ret != 0)
+    {
+        printf("设置sntp时区和服务器区失败\r\n");
+        return;
+    }
+    printf("设置sntp时区和服务器区成功\r\n");
     //设置服务器域名
     ret = WIFI_send_data("AT+MQTT=1,gz-3-mqtt.iot-api.com\r\n",5000);
     if(ret != 0)
@@ -145,6 +155,10 @@ void WIFI_init(void)
     delay_ms(1500);
     //订阅主题
     WIFI_send_data("AT+MQTTSUB=attributes/push,0\r\n",3000);
+    //打开回显
+    usart2_send_str("ATE1\r\n");
+    //查询sntp时间
+    WIFI_send_data("AT+SNTPTIME?\r\n",5000);
 
 }
 
