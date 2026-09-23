@@ -335,6 +335,7 @@ u8 CY8CMBR3116_key_scan(void)
  ***************************************************/
 void check_init_password(void)
 {
+    lcd_clear(0,0,240,240,0xffff);
     u8 pwd_flag = 0;  
     at24c02_read_byte(0,&pwd_flag);//读出初始密码标志位
     if(pwd_flag == 1)//不是第一次开机
@@ -364,6 +365,10 @@ void check_init_password(void)
         {
             if(pwd_input == 1 )
             {
+                if(key_value != '*' && key_value != '#')
+                {
+                    lcd_show_zk_char('*',24+pwd_cnt*16,100,32,0x0000,0xffff);
+                }
                 first_pwd[pwd_cnt++] = key_value;
                 if(key_value == '#')
                 {
@@ -378,6 +383,10 @@ void check_init_password(void)
             }
             else if(pwd_input == 2)
             {
+                if(key_value != '*' && key_value != '#')
+                {
+                    lcd_show_zk_char('*',24+pwd_cnt*16,100,32,0x0000,0xffff);
+                }
                 second_pwd[pwd_cnt++] = key_value;
                 if(key_value == '#')
                 {
@@ -414,6 +423,21 @@ void check_init_password(void)
 }
 
 /**************************************************
+ * 函数名:reset_password_input
+ * 函数功能:重置开门密码输入状态
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：从管理员页面返回时调用
+ ***************************************************/
+static u8 input_pwd[20] = {0};    //输入密码缓冲区
+static u8 pwd_cnt = 0;            //密码长度计数器
+void reset_password_input(void)
+{
+    pwd_cnt = 0;
+    memset(input_pwd, 0, sizeof(input_pwd));
+}
+ 
+/**************************************************
  * 函数名:password_open_door
  * 函数功能:密码开门
  * 函数参数：无
@@ -421,17 +445,20 @@ void check_init_password(void)
  * 函数说明：
  ***************************************************/
 void password_open_door(void)
-{
-    static u8 input_pwd[20] = {0};    //输入密码缓冲区缓冲区
+{ 
     u8 read_pwd[20] = {0};            //读取密码缓冲区缓冲区
-    static u8 pwd_cnt = 0;            //密码长度计数器
-    static u8 error_input = 0;        //记录第几次输入密码
     u8 key_value = 0xff;              //按键值
     u8 pwd_len = 0;                   //读取密码长度
+    static u8 error_input = 0;        //记录第几次输入密码
     
     key_value = CY8CMBR3116_key_scan();
     if(key_value != 0xff)
     {   
+        //显示输入密码
+        if(key_value != '*' && key_value != '#')
+        {
+            lcd_show_zk_char('*',24+pwd_cnt*16,132,32,0x0000,0xffff);
+        }
         input_pwd[pwd_cnt++] = key_value;
         if(key_value == '#')
         {
@@ -473,6 +500,12 @@ void password_open_door(void)
             lcd_clear(0,0,240,240,0xffff);
             ui_flag = 0;//重置ui_flag
             pwd_cnt = 0;
+        }
+        if(key_value == '*')
+        {
+            pwd_cnt = 0;
+            lcd_clear(0,132,240,164,0xffff);
+            return;
         }  
     }
 }
@@ -487,15 +520,17 @@ void password_open_door(void)
  ***************************************************/
 void admin_password_check(void)
 {
-    static u8 input_pwd[20] = {0};    //输入密码缓冲区缓冲区
     u8 read_pwd[20] = {0};            //读取密码缓冲区缓冲区
-    static u8 pwd_cnt = 0;            //密码长度计数器
     u8 key_value = 0xff;              //按键值
     u8 pwd_len = 0;                   //读取密码长度
     
     key_value = CY8CMBR3116_key_scan();
     if(key_value != 0xff)
     {   
+        if(key_value != '*' && key_value != '#')
+        {
+            lcd_show_zk_char('*',24+pwd_cnt*16,132,32,0x0000,0xffff);
+        }
         input_pwd[pwd_cnt++] = key_value;
         if(key_value == '#')
         {
@@ -536,6 +571,7 @@ void admin_password_check(void)
         {
             ui_flag = 0;//重置ui_flag
             memset(input_pwd,0,sizeof(input_pwd));
+            reset_password_input(); //重置开门密码输入状态
             lcd_clear(0,0,240,240,0xffff);
             key_value = 0xff;
             vTaskResume(open_page_task_handle);//解挂开门页面任务
@@ -570,6 +606,10 @@ void change_password_door(void)
         {
             if(pwd_cnt == 1)
             {
+                if(key_value != '*' && key_value != '#')
+                {
+                    lcd_show_zk_char('*',24+pwd_len*16,132,32,0x0000,0xffff);
+                }
                 first_input[pwd_len++] = key_value;
                 if(key_value == '#')
                 {
@@ -584,6 +624,10 @@ void change_password_door(void)
             }
             else if(pwd_cnt == 2)
             {
+                if(key_value != '*' && key_value != '#')
+                {
+                    lcd_show_zk_char('*',24+pwd_len*16,132,32,0x0000,0xffff);
+                }
                 second_input[pwd_len++] = key_value;
                 if(key_value == '#')
                 {
@@ -592,7 +636,7 @@ void change_password_door(void)
                     //判断第一次输入和第二次输入是否一致
                     if(strcmp((char *)first_input,(char *)second_input) == 0)
                     {
-                        lcd_clear(0,0,240,200,0xffff);
+                        lcd_clear(0,0,240,240,0xffff);
                         lcd_show_zk_str("密码修改成功",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1C);//操作成功语言
                         delay_ms(300);
@@ -661,6 +705,10 @@ void change_password_admin(void)
         {
             if(pwd_cnt == 1)
             {
+                if(key_value != '*' && key_value != '#')
+                {
+                    lcd_show_zk_char('*',24+pwd_len*16,132,32,0x0000,0xffff);
+                }
                 first_input[pwd_len++] = key_value;
                 if(key_value == '#')
                 {
@@ -675,6 +723,10 @@ void change_password_admin(void)
             }
             else if(pwd_cnt == 2)
             {
+                if(key_value != '*' && key_value != '#')
+                {
+                    lcd_show_zk_char('*',24+pwd_len*16,132,32,0x0000,0xffff);
+                }
                 second_input[pwd_len++] = key_value;
                 if(key_value == '#')
                 {
@@ -683,7 +735,7 @@ void change_password_admin(void)
                     //判断第一次输入和第二次输入是否一致
                     if(strcmp((char *)first_input,(char *)second_input) == 0)
                     {
-                        lcd_clear(0,0,240,200,0xffff);
+                        lcd_clear(0,0,240,240,0xffff);
                         lcd_show_zk_str("密码修改成功",0,0,32,0x0000,0xffff);
                         NV400F_send_data(0X1C);//操作成功语言
                         delay_ms(300);

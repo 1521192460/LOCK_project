@@ -14,9 +14,10 @@ void CY8CMBR3116_init(void);
 u8 CY8CMBR3116_get_key(void);
 u8 CY8CMBR3116_key_scan(void);  
 
-void check_init_password(void);
-void password_open_door(void);
-void admin_password_check(void);
-void change_password_door(void);    
-void change_password_admin(void);
+void check_init_password(void);     //检查初始化密码
+void reset_password_input(void);    //重置开门密码输入状态
+void password_open_door(void);      //密码开门
+void admin_password_check(void);    //管理员密码验证
+void change_password_door(void);    //修改开门密码
+void change_password_admin(void);   //修改管理员密码
 #endif

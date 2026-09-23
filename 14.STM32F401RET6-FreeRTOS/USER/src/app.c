@@ -20,7 +20,7 @@ void open_page_task(void *ptr)
         if(status.time_updata == 1)
         {
             status.time_updata = 0;
-            time = get_time_date();
+            RTC_t time = get_time_date();
             sprintf((char*)time_str, "%02u:%02u", time.hour, time.min);   
             lcd_show_zk_str((u8*)time_str, 40, 0, 64, 0x0000, 0xffff); 
         }
@@ -29,6 +29,7 @@ void open_page_task(void *ptr)
         {
             ui_flag = 1;
             lcd_show_zk_str("欢迎",88,100,32,0x0000,0xffff);
+            lcd_show_zk_str("*清空     #开门",0,208,32,0x0000,0xffff);
         }
         
         //一直循环的部分
@@ -41,6 +42,7 @@ void open_page_task(void *ptr)
         {
             //挂起开门页面任务
             ui_flag = 0;//重置ui_flag
+            reset_password_input();
             lcd_clear(0,0,240,240,0xffff);
             vTaskSuspend(open_page_task_handle);
         }
@@ -111,7 +113,10 @@ void admin_page_task(void *ptr)
 				case '6':RFID_add_card();break;
 				case '7':RFID_delete_card();break;
 				case '8':RFID_delete_all_card();break;
-				case '*':ui_flag = 0;key_value = 0xff;lcd_clear(0,0,240,240,0xffff);vTaskResume(open_page_task_handle);vTaskResume(admin_check_task_handle);break;
+				case '*':ui_flag = 0;key_value = 0xff;reset_password_input();
+                        lcd_clear(0,0,240,240,0xffff);
+                        vTaskResume(open_page_task_handle);
+                        vTaskResume(admin_check_task_handle);break;
 			}
 		}
     }
@@ -159,17 +164,13 @@ void start_task(void *ptr)
 		}
 		printf("初始化已完成\r\n");
 	}
-	if(WIFI_init() == 0)
+	if(WIFI_init() == 0)//如果连接上服务器
 	{
-        /***************获取NTP服务器时间***************************/
-        WIFI_check_time();
         /****************上报开门密码和管理员密码*******************/
         WIFI_report_password();
 	}
-    
-    
-	lcd_clear(0,0,240,240,0xffff);
-
+    /***************获取NTP服务器时间***************************/
+    WIFI_get_time();
     /****************检查初始密码*******************************/
     check_init_password();
 

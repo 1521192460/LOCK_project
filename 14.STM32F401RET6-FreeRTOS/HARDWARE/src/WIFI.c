@@ -244,52 +244,32 @@ void WIFI_report_password(void)
 /*************************
 函数名:WIFI_get_time
 函数功能：获取时间日期
-函数参数：
-        u8 *hour
-        u8 *min
-        u8 *sec
-函数返回值：u8
+函数参数：无
+函数返回值：无
 函数说明：
 *************************/  
-u8 WIFI_get_time(u8 *hour, u8 *min, u8 *sec)
+void WIFI_get_time(void)
 {
     const char *p = NULL;
+    RTC_t t = {0};
     unsigned int h = 0, m = 0, s = 0;
     if(WIFI_send_data("AT+SNTPTIME?\r\n", 5000) != 0)
     {
         printf("获取时间失败\r\n");
-        return 1;
+        return;
     }
 
     p = strstr((const char*)u2.buff, "+SNTPTIME:");
-    if(p == NULL) return 1;         //未找到时间字符串
+    if(p == NULL) return;         //未找到时间字符串
 
     //获取时间字符数据
     sscanf(p, "+SNTPTIME:%*3s %*3s %*u %2u:%2u:%2u", &h, &m, &s);
+
     //将数据传递给hour,min,sec
-    *hour = (u8)h;
-    *min  = (u8)m;
-    *sec  = (u8)s;
-    return 0;
-}
-
-
-/*************************
-函数名:WIFI_check_time
-函数功能：检查NTP
-函数参数：无
-函数返回值：u8
-函数说明：
-*************************/ 
-u8 WIFI_check_time(void)
-{
-    u8 h=0,m=0,s=0;
-    if(WIFI_get_time(&h,&m,&s) != 0) 
-        return 1;
-    RTC_t t = {0};
+    t.hour = (u8)h;
+    t.min = (u8)m;
+    t.sec = (u8)s;
     //将获取到的时间赋值给RTC_t结构体
-    t.hour = h; t.min = m; t.sec = s;
-    //设置RTC时间
     set_time(t);      // 时分秒进 RTC
-    return 0;
 }
+

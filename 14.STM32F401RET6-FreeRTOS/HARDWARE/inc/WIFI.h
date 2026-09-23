@@ -9,6 +9,6 @@ u8 WIFI_init(void);
 void WIFI_ctrl(void);
 void WIFI_report_password(void);
 u8 WIFI_send_data(u8 *cmd,u16 timeout);
-u8 WIFI_check_time(void);
+void WIFI_get_time(void);
 
 #endif

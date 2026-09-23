@@ -831,9 +831,7 @@ void RFID_open_door(void)
   u8 i,j,cnt=0;
   //识别卡
   if(RFID_recognize(id,1) != 0)
-  {
     return;
-  }
   //读取空间35-55
   at24c02_sequential_read(35,20,(u8 *)buff);
   for(i=0;i<5;i++)//遍历5个卡片ID
@@ -852,13 +850,12 @@ void RFID_open_door(void)
         LOCK_ON;
         delay_ms(1500);
         LOCK_OFF;
+        lcd_clear(0,0,240,240,0xffff);
+        ui_flag = 0;
       }
     }
     cnt = 0;              
   }
-  ui_flag = 0;
-  lcd_clear(0,0,240,240,0xffff);
-  return;
 }
 
 
@@ -918,6 +915,7 @@ void RFID_delete_card(void)
   //删除卡片ID
   lcd_clear(0,0,240,240,0xffff);
   lcd_show_zk_str("确认删除?",56,0,32,0x0000,0xffff);
+  NV400F_send_data(0x0f);//是否删除语音
   lcd_show_zk_str("#:确认 *:取消",15,98,32,0x0000,0xffff);
   while(1)
   {
@@ -935,17 +933,15 @@ void RFID_delete_card(void)
       lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
       NV400F_send_data(0X1c);//操作成功
       delay_ms(500);
-      lcd_clear(0,0,240,240,0xffff);
-      ui_flag = 0;
-      return;
+      break;
     }
     if(key_value == '*')
     {
-      lcd_clear(0,0,240,240,0xffff);
-      ui_flag = 0;
-      return;
+      break;
     }
   }
+  lcd_clear(0,0,240,240,0xffff);
+  ui_flag = 0;
 }
 
 
@@ -962,6 +958,7 @@ void RFID_delete_all_card(void)
   u8 i,j;
   lcd_clear(0,0,240,240,0xffff);
   lcd_show_zk_str("确认删除?", 56, 0, 32, 0x0000, 0xffff);
+  NV400F_send_data(0x0f);//是否删除语音
   lcd_show_zk_str("#:确认 *:取消", 15, 98, 32, 0x0000, 0xffff);
 
 
@@ -983,15 +980,13 @@ void RFID_delete_all_card(void)
       lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
       NV400F_send_data(0X1c);//操作成功
       delay_ms(500);
-      lcd_clear(0,0,240,240,0xffff);
-      ui_flag = 0;
-      return;
+      break;
     }
     if(key_value == '*')
     {
-      lcd_clear(0,0,240,240,0xffff);
-      ui_flag = 0;
-      return;
+      break;
     }
   }
+  lcd_clear(0,0,240,240,0xffff);
+  ui_flag = 0; 
 }

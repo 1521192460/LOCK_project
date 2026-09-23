@@ -11,7 +11,6 @@ typedef struct rtc
 	u8 sec;
 	
 }RTC_t;
-extern RTC_t time;
 //宏定义
 
 //函数声明

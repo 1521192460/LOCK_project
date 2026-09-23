@@ -165,7 +165,7 @@ u8 MG200_enroll(u8 id)
         lcd_show_zk_str(str,40,98,32,0x0000,0xffff);
         do
             ret = MG200_get_fingerprint(i);
-        while(ret != 0 && ret != MG200_CANCEL);
+        while(ret != 0 && ret != MG200_CANCEL); // 采集成功或用户取消
         if(ret == MG200_CANCEL)
             return MG200_CANCEL;   // 用户取消，不再继续
         
@@ -367,7 +367,7 @@ void MG200_register(void)
     lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
     NV400F_send_data(0X10);//请放手指语音
 
-    u8 id = MG200_get_user_num();   // 下一个可用 ID
+    u8 id = MG200_get_user_num() + 1;   // 下一个可用 ID
     if(id > 100)                         // 指纹库满(100 枚)
     {
         lcd_clear(0,0,240,240,0xffff);
@@ -393,7 +393,7 @@ void MG200_register(void)
             lcd_show_zk_str("注册成功",56,98,32,0x0000,0xffff);
             NV400F_send_data(0X1c);
         }
-        else                             // 注册失败
+        else
         {
             lcd_show_zk_str("指纹已注册", 40,98,32,0x0000,0xffff);
             NV400F_send_data(0x32);
@@ -457,6 +457,7 @@ void MG200_delete_id(void)
     //2.确认删除（MG200 自带存储，只删模块内指纹，不再操作 AT24C02）
     lcd_clear(0, 0, 240, 240, 0xffff);
     lcd_show_zk_str("确认删除?", 40, 0, 32, 0x0000, 0xffff);
+    NV400F_send_data(0x0f);//是否删除语音
     lcd_show_zk_str("#:确认 *:取消", 15, 98, 32, 0x0000, 0xffff);
     NV400F_send_data(0X0f); //是否删除语音
     while(1)//确认删除，中途按*取消
@@ -465,6 +466,8 @@ void MG200_delete_id(void)
         if(key == '#')
         {
             MG200_erase(id);            // 删除 MG200 模块中的该枚指纹
+            lcd_clear(0, 0, 240, 240, 0xffff);
+            lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
             NV400F_send_data(0X1c);     // 操作成功
             delay_ms(1000);
             break;
@@ -494,6 +497,7 @@ void MG200_delete_all(void)
     lcd_clear(0, 0, 240, 240, 0xffff);
     //1.确认删除
     lcd_show_zk_str("确认删除?", 56, 60, 32, 0x0000, 0xffff);
+    NV400F_send_data(0x0f);//是否删除语音
     lcd_show_zk_str("#:确认 *:取消", 15, 98, 32, 0x0000, 0xffff);
     NV400F_send_data(0X0f); //是否删除语音
     while(1)//确认删除，中途按*取消
@@ -502,6 +506,8 @@ void MG200_delete_all(void)
         if(key == '#')
         {
             MG200_erase_all();          // 删除 MG200 模块中的全部指纹
+            lcd_clear(0, 0, 240, 240, 0xffff);
+            lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff); 
             NV400F_send_data(0X1c);     // 操作成功
             delay_ms(1000);
             break;
