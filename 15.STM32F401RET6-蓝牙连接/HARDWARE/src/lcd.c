@@ -1,0 +1,542 @@
+#include "lcd.h"
+#include "image.h"
+
+/*****************************
+ * 函数名:lcd_send_cmd
+ * 函数功能:发送命令lcd命令
+ * 函数参数：u8 cmd
+ * 函数返回值：void
+ * 函数说明:
+ *          发送命令lcd命令
+ ***************************** */
+void lcd_send_cmd(u8 cmd)
+{
+    //拉低片选
+    LCD_CS_L;
+    //拉低DC发送命令
+    LCD_CMD;
+    //发送命令
+    lcd_transfer_data(cmd);
+    //拉高片选
+    LCD_CS_H;
+}
+
+
+
+/*****************************
+ * 函数名:lcd_send_8bit_data
+ * 函数功能:发送数据lcd数据
+ * 函数参数：u8 data
+ * 函数返回值：void
+ * 函数说明:
+ *          发送8位数据lcd数据
+ ***************************** */
+void lcd_send_8bit_data(u8 data)
+{
+    //拉低片选
+    LCD_CS_L;
+    //拉低DC发送命令数据
+    LCD_DATA;
+    //发送数据
+    lcd_transfer_data(data);
+    //拉高片选
+    LCD_CS_H;
+}
+
+
+/*****************************
+ * 函数名:lcd_send_16bit_data
+ * 函数功能:发送数据lcd数据
+ * 函数参数：u16 data
+ * 函数返回值：void
+ * 函数说明:
+ *          发送16位数据lcd数据
+ ***************************** */
+void lcd_send_16bit_data(u16 data)
+{
+    //拉低片选
+    LCD_CS_L;
+    //拉低DC发送命令数据
+    LCD_DATA;
+    //发送高8位数据
+    lcd_transfer_data(data>>8);
+    //发送低8位数据
+    lcd_transfer_data(data);
+    //拉高片选
+    LCD_CS_H;
+}
+
+/*****************************
+ * 函数名:lcd_init
+ * 函数功能:lcd初始化
+ * 函数参数：void
+ * 函数返回值：void
+ * 函数说明:
+ ***************************** */
+void lcd_init(void)
+{
+    //管脚初始化
+    lcd_pin_init();
+    //复位
+    LCD_RESET_L;
+    delay_ms(100);
+    LCD_RESET_H;
+    delay_ms(100);
+    //厂家命令
+   	lcd_send_cmd(0x36);
+	lcd_send_8bit_data(0x00);
+
+	lcd_send_cmd(0x3A); 
+	lcd_send_8bit_data(0x05);
+
+	lcd_send_cmd(0xB2);
+	lcd_send_8bit_data(0x0C);
+	lcd_send_8bit_data(0x0C);
+	lcd_send_8bit_data(0x00);
+	lcd_send_8bit_data(0x33);
+	lcd_send_8bit_data(0x33); 
+
+	lcd_send_cmd(0xB7); 
+	lcd_send_8bit_data(0x35);  
+
+	lcd_send_cmd(0xBB);
+	lcd_send_8bit_data(0x19);
+
+	lcd_send_cmd(0xC0);
+	lcd_send_8bit_data(0x2C);
+
+	lcd_send_cmd(0xC2);
+	lcd_send_8bit_data(0x01);
+
+	lcd_send_cmd(0xC3);
+	lcd_send_8bit_data(0x12);   
+
+	lcd_send_cmd(0xC4);
+	lcd_send_8bit_data(0x20);  
+
+	lcd_send_cmd(0xC6); 
+	lcd_send_8bit_data(0x0F);    
+
+	lcd_send_cmd(0xD0); 
+	lcd_send_8bit_data(0xA4);
+	lcd_send_8bit_data(0xA1);
+
+	lcd_send_cmd(0xE0);
+	lcd_send_8bit_data(0xD0);
+	lcd_send_8bit_data(0x04);
+	lcd_send_8bit_data(0x0D);
+	lcd_send_8bit_data(0x11);
+	lcd_send_8bit_data(0x13);
+	lcd_send_8bit_data(0x2B);
+	lcd_send_8bit_data(0x3F);
+	lcd_send_8bit_data(0x54);
+	lcd_send_8bit_data(0x4C);
+	lcd_send_8bit_data(0x18);
+	lcd_send_8bit_data(0x0D);
+	lcd_send_8bit_data(0x0B);
+	lcd_send_8bit_data(0x1F);
+	lcd_send_8bit_data(0x23);
+
+	lcd_send_cmd(0xE1);
+	lcd_send_8bit_data(0xD0);
+	lcd_send_8bit_data(0x04);
+	lcd_send_8bit_data(0x0C);
+	lcd_send_8bit_data(0x11);
+	lcd_send_8bit_data(0x13);
+	lcd_send_8bit_data(0x2C);
+	lcd_send_8bit_data(0x3F);
+	lcd_send_8bit_data(0x44);
+	lcd_send_8bit_data(0x51);
+	lcd_send_8bit_data(0x2F);
+	lcd_send_8bit_data(0x1F);
+	lcd_send_8bit_data(0x1F);
+	lcd_send_8bit_data(0x20);
+	lcd_send_8bit_data(0x23);
+
+	lcd_send_cmd(0x21); 
+	lcd_send_cmd(0x11); 
+	lcd_send_cmd(0x29);  
+
+    //打开背光
+    LCD_LEDK_ON;
+
+    //清屏
+    lcd_clear(0,0,240,240,0xffff);		
+}
+
+
+/*******************************
+ * 函数名:lcd_set_position
+ * 函数功能:lcd显示位置函数
+ * 函数参数：u16 xs          起始x坐标
+ *          u16 ys          起始y坐标
+ *          u16 xe          结束x坐标
+ *          u16 ye          结束y坐标
+ * 函数返回值：void
+ * 函数说明:
+ *******************************/
+void lcd_set_position(u16 xs,u16 ys,u16 xe,u16 ye)
+{
+    //设置x坐标
+    lcd_send_cmd(0x2A);
+    lcd_send_16bit_data(xs);
+    lcd_send_16bit_data(xe-1);
+    //设置y坐标
+    lcd_send_cmd(0x2B);
+    lcd_send_16bit_data(ys);
+    lcd_send_16bit_data(ye-1);
+    //写入数据
+    lcd_send_cmd(0x2C);
+}   
+/*******************************
+ * 函数名:lcd_write_data_dma
+ * 函数功能:使用DMA发送数据到SPI2
+ * 函数参数：u8 *buf：要发送的数据指针
+ *          u32 len：数据长度
+ * 函数返回值：void
+ * 函数返回值：void
+ * 函数说明：    使用DMA发送数据到SPI2，数据发送完成后，CS高电平，设置DC=data
+ *******************************/
+void lcd_write_data_dma(u8 *buf, u32 len)
+{
+    LCD_CS_L;
+    LCD_DATA;
+    while(len)
+    {
+        u16 n = (len > 65535) ? 65535 : (u16)len;	//判断发送的数据长度
+        dma1_spi2_tx(buf, n);
+        buf += n;
+        len -= n;
+    }
+    LCD_CS_H;
+}
+
+
+/*******************************
+ * 函数名:lcd_clear
+ * 函数功能:lcd清屏函数（清空指定区域）
+ * 函数参数：u16 xs          起始x坐标
+ *          u16 ys          起始y坐标
+ *          u16 xe          结束x坐标
+ *          u16 ye          结束y坐标
+ *          u16 color          清屏颜色
+ * 函数返回值：void
+ * 函数说明:
+ *******************************/
+void lcd_clear(u16 xs,u16 ys,u16 xe,u16 ye,u16 color)
+{
+    u32 total = (u32)(xe-xs) * (ye-ys) * 2;   // total bytes
+    static u8 fill[480];                       // 240 pixels = 480 bytes
+    u8 hi = (u8)(color >> 8);
+    u8 lo = (u8)color;
+    for(u16 i = 0; i < 240; i++)		//填充数组
+    {
+        fill[i*2]     = hi;				//高8位
+        fill[i*2 + 1] = lo;				//低8位
+    }
+
+    lcd_set_position(xs, ys, xe, ye);
+
+    LCD_CS_L;
+    LCD_DATA;
+    while(total)
+    {
+        u16 n = (total > sizeof(fill)) ? (u16)sizeof(fill) : (u16)total;		//每次发送数组大小
+        dma1_spi2_tx(fill, n);
+        total -= n;
+    }
+    LCD_CS_H;
+}
+
+
+
+/*******************************
+ * 函数名:lcd_show_image
+ * 函数功能:lcd显示图片函数（显示指定图片）
+ * 函数参数：u8 *image          图片指针，指向图片数据的起始地址
+ *          u8 x          图片起始x坐标
+ *          u8 y          图片起始y坐标
+ * 函数返回值：void
+ * 函数说明:图片数据内每个数据颜色都是8位，两个字节表示一个像素的颜色
+ *******************************/
+void lcd_show_image(u8 *image,u8 x,u8 y)
+{
+    u16 width  = (u16)((image[2] << 8) | image[3]);
+    u16 height = (u16)((image[4] << 8) | image[5]);
+    u32 total  = (u32)width * height * 2;      // 图片数据长度
+    u8 *p      = &image[8];                    // 跳过8字节头信息
+
+    lcd_set_position(x, y, width + x, y + height);
+
+    LCD_CS_L;
+    LCD_DATA;
+    while(total)
+    {
+        u16 n = (total > 65535) ? 65535 : (u16)total;
+        dma1_spi2_tx(p, n);
+        p += n;				//偏移n个字节
+        total -= n;			//剩余字节数
+    }
+    LCD_CS_H;
+}
+
+
+
+
+/*************************************************取模方式显示***********************************************************************/
+
+/*******************************
+ * 函数名:lcd_draw_point
+ * 函数功能:lcd画点函数
+ * 函数参数：
+ *          u8 x          字体起始x坐标
+ *          u8 y          字体起始y坐标
+ *          u16 color          字体颜色
+ * 函数返回值：void
+ * 函数说明:
+ *******************************/
+void lcd_draw_point(u8 x,u8 y,u16 color)
+{
+	//设置一个像素点坐标
+	lcd_set_position(x,y,x+1,y+1);
+	//发送颜色
+	lcd_send_16bit_data(color);
+}
+
+
+/*******************************
+ * 函数名:lcd_show_eng
+ * 函数功能:lcd显示英文函数
+ * 函数参数：u8 *font        字体指针，指向字体数据的起始地址
+ *          u8 x          	字体起始x坐标
+ *          u8 y          	字体起始y坐标
+ * 			u16 font_color	字体颜色
+ * 			u16 font_bg		字体背景颜色
+ * 			u8 size			根据行数选择字体大小：16:8x16	24:12x24	32:16x32 
+ * 函数返回值：void
+ * 函数说明:
+ *******************************/
+void lcd_show_eng(u8 *font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
+{
+    u8 width = size / 2;              // 字体宽度
+    u8 font_size = width / 8;         // 每一行的字节数
+    if(width % 8 != 0) font_size += 1;
+
+    static u8 buf[64*32];						//字体像素缓冲区
+    u16 idx = 0;								//字体像素缓冲区索引
+    u8 hi  = font_color >> 8, lo  = font_color;	//字体颜色高字节和低字节
+    u8 bhi = font_bg    >> 8, blo = font_bg;	//字体背景颜色高字节和低字节
+
+    for(u8 i = 0; i < size; i++)          // 行
+        for(u8 c = 0; c < width; c++)     // 列: 字体宽度
+        {
+            u8 byte = c / 8;				//当前列的字节索引
+            u8 bit  = c % 8;				//当前列的位索引
+            if(font[i*font_size + byte] & (0x80 >> bit))
+            { buf[idx++] = hi; buf[idx++] = lo; }	//字体颜色
+            else
+            { buf[idx++] = bhi; buf[idx++] = blo; }	//背景颜色
+        }
+
+    lcd_set_position(x, y, x + width, y + size);   // window = actual width
+    lcd_write_data_dma(buf, (u32)size * width * 2); // bytes = actual width
+}
+
+
+
+/*******************************
+ * 函数名:lcd_show_chinese
+ * 函数功能:lcd显示中文函数
+ * 函数参数：u8 *font        字体指针，指向字体数据的起始地址
+ *          u8 x          	字体起始x坐标
+ *          u8 y          	字体起始y坐标
+ * 			u16 font_color	字体颜色
+ * 			u16 font_bg		字体背景颜色
+ * 			u8 size			根据行数选择字体大小：8:8x8 16:16*16	32:16x32 
+ * 函数返回值：void
+ * 函数说明:
+ *******************************/
+void lcd_show_chinese(u8 *font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
+{
+    u8 font_size = size / 8;          // 每一行的字节数
+    if(size % 8 != 0) font_size += 1;
+
+    static u8 buf[32*32*2];						//字体像素缓冲区
+    u16 idx = 0;								//字体像素缓冲区索引
+    u8 hi  = font_color >> 8, lo  = font_color;	//字体颜色高字节和低字节
+    u8 bhi = font_bg    >> 8, blo = font_bg;	//字体背景颜色高字节和低字节
+
+    for(u8 i = 0; i < size; i++)            // row
+        for(u8 j = 0; j < font_size; j++)   // byte
+            for(u8 k = 0; k < 8; k++)       // bit
+            {
+                if(font[i*font_size+j] & (0x80 >> k))//判断当前位是否为1
+                { buf[idx++] = hi; buf[idx++] = lo; }	//字体颜色
+                else
+                { buf[idx++] = bhi; buf[idx++] = blo; }	//背景颜色
+            }
+
+    lcd_set_position(x, y, x + size, y + size);   //设置位置
+    lcd_write_data_dma(buf, (u32)size * size * 2); // DMA发送字体像素数据
+}
+
+
+
+
+
+
+/*************************************************字库显示**************************************************************************/
+
+
+
+/*******************************
+ * 函数名:lcd_show_zk_font
+ * 函数功能:从字库中显示文字
+ * 函数参数：u8 *font        字体指针，指向字体数据的起始地址
+ *          u8 x          	字体起始x坐标
+ *          u8 y          	字体起始y坐标
+ * 			u16 font_color	字体颜色
+ * 			u16 font_bg		字体背景颜色
+ * 			u8 size			根据行数选择字体大小：8:8x8 16:16*16	32:16x32 
+ * 函数返回值：void
+ * 函数说明:
+ *      HZK16.bin                  0x0003FE46        0x00000000             
+ *      HZK24.bin                  0x0008FC16        0x0003FE46             
+ *      HZK32.bin                  0x000FF906        0x000CFA5C             
+ *      ASC16.bin                  0x00000806        0x001CF362             
+ *      ASC24.bin                  0x00001806        0x001CFB68            
+ *      ASC32.bin                  0x00002006        0x001D136E             
+ *      ASC72.bin                  0x0000B406        0x001D3374                     
+ *
+********************************/
+void lcd_show_zk_font(u8 *font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
+{
+	//存放字体数据的缓冲区
+	u8 font_buff[128];
+
+	/*计算字体数据的偏移量*/
+	u32 addr = 0;
+	//计算这个字的字模字节大小
+	u8 font_size = size / 8;
+	//计算一个字的字模数据大小
+	u8 font_data = size * font_size;
+	//根据区码和位码求字体数据的偏移量
+	addr = ((font[0] - 0xA1) * 94 + (font[1] - 0xA1)) * font_data;
+	u32 font_addr = 0;
+	//从字库中提取字体数据：根据字体大小选择不同的字库
+	switch(size)
+	{
+		case 16:font_addr = 0x00000000;break;
+		case 24:font_addr = 0x0003FE46;break;
+		case 32:font_addr = 0x000CFA5C;break;
+	}
+	//读取字体数据
+	w25q64_read_data(font_addr + addr,font_data,font_buff);
+	//显示字体
+	lcd_show_chinese(font_buff,x,y,size,font_color,font_bg);
+}
+
+
+/*******************************
+ * 函数名:lcd_show_zk_char
+ * 函数功能:从字库中显示字符
+ * 函数参数：u8 font        字体指针，指向字体数据的起始地址
+ *          u8 x          	字体起始x坐标
+ *          u8 y          	字体起始y坐标
+ * 			u16 font_color	字体颜色
+ * 			u16 font_bg		字体背景颜色
+ * 			u8 size			根据行数选择字体大小：8:8x8 16:16*16	32:16x32 
+ * 函数返回值：void
+ * 函数说明:
+ *      HZK16.bin                  0x0003FE46        0x00000000             
+ *      HZK24.bin                  0x0008FC16        0x0003FE46             
+ *      HZK32.bin                  0x000FF906        0x000CFA5C             
+ *      ASC16.bin                  0x00000806        0x001CF362             
+ *      ASC24.bin                  0x00001806        0x001CFB68            
+ *      ASC32.bin                  0x00002006        0x001D136E             
+ *      ASC64.bin        		   0x00008006        0x001D3374                       
+ *
+********************************/
+void lcd_show_zk_char(u8 font,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
+{
+	//存放字体数据的缓冲区
+	u8 char_buff[256];
+
+	/*计算字体数据的偏移量*/
+	u32 addr = 0;
+	//计算这个字的字模字节大小
+	u8 char_size = size / 2 / 8 ;
+	if(size / 2 % 8 != 0)
+	{
+		char_size++;
+	}
+	//计算一个字的字模数据大小
+	u16 char_data = size * char_size;
+	//根据区码和位码求字体数据的偏移量
+	addr =  font * char_data;
+	//根据字体大小选择不同的字库
+	u32 font_addr = 0;
+	switch(size)
+	{
+		case 16:font_addr = 0x001CF362;break;
+		case 24:font_addr = 0x001CFB68;break;
+		case 32:font_addr = 0x001D136E;break;
+		case 64:font_addr = 0x001D3374;break;
+	}
+	//读取数据
+	w25q64_read_data(font_addr+addr,char_data,char_buff);
+	//显示字体
+	lcd_show_eng(char_buff,x,y,size,font_color,font_bg);
+}
+
+
+
+
+
+/*******************************
+ * 函数名:lcd_show_zk_str
+ * 函数功能:从字库中显示字符串
+ * 函数参数：u8 *str         字符串指针，指向字符串的起始地址
+ *          u8 x          	字体起始x坐标
+ *          u8 y          	字体起始y坐标
+ * 			u16 font_color	字体颜色
+ * 			u16 font_bg		字体背景颜色
+ * 			u8 size			根据行数选择字体大小：8:8x8 16:16*16	32:16x32 
+ * 函数返回值：void
+ * 函数说明:      
+********************************/
+void lcd_show_zk_str(u8 *str,u8 x,u8 y,u8 size,u16 font_color,u16 font_bg)
+{
+	u16 i = 0;
+
+	while(str[i] != '\0')
+	{
+		//如果是英文/字符字符
+		if(str[i] < 0xA0)
+		{
+			lcd_show_zk_char(str[i],x,y,size,font_color,font_bg);
+			i++;
+			x += size / 2;
+			if(x > 240 - size / 2)
+			{
+				//切换到下一行
+				x = 0;
+				y += size;
+			}
+		}
+		//如果是中文字符
+		else
+		{
+
+			lcd_show_zk_font(&str[i],x,y,size,font_color,font_bg);
+			i += 2;
+			x += size;
+			if(x > 240 - size)
+			{
+				//切换到下一行
+				x = 0;
+				y += size;
+			}
+		}
+	}
+}

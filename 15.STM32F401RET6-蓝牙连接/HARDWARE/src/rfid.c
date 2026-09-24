@@ -1,0 +1,992 @@
+#include "rfid.h"
+
+
+
+/*************************************
+  * @brief  读RC522寄存器
+  * @param  ucAddress，寄存器地址
+  * @retval 寄存器的当前值
+*************************************/
+uint8_t ReadRawRC ( uint8_t ucAddress )
+{
+	uint8_t ucAddr, ucReturn;
+	
+	ucAddr = ( ( ucAddress << 1 ) & 0x7E ) | 0x80;	
+	RFID_CS_L;
+  
+	rfid_transfer_data(ucAddr);
+	ucReturn = rfid_transfer_data(0);
+  
+	RFID_CS_H;
+	
+	return ucReturn;	
+}
+ 
+/**************************************
+  * @brief  写RC522寄存器
+  * @param  ucAddress，寄存器地址
+  * @param  ucValue，写入寄存器的值
+  * @retval 无
+  *************************************/
+void WriteRawRC ( uint8_t ucAddress, uint8_t ucValue )
+{  
+	uint8_t ucAddr;
+	
+	ucAddr = ( ucAddress << 1 ) & 0x7E;	
+	RFID_CS_L;
+	
+	rfid_transfer_data(ucAddr);	
+	rfid_transfer_data(ucValue);
+  
+	RFID_CS_H;		
+}
+ 
+
+/**************************************
+  * @brief  对RC522寄存器置位
+  * @param  ucReg，寄存器地址
+  * @param   ucMask，置位值
+  * @retval 无
+  *************************************/
+void SetBitMask ( uint8_t ucReg, uint8_t ucMask )  
+{
+  uint8_t ucTemp;
+ 
+  ucTemp = ReadRawRC ( ucReg );
+  WriteRawRC ( ucReg, ucTemp | ucMask ); // set bit mask
+}
+
+
+/**************************************
+  * @brief  对RC522寄存器清位
+  * @param  ucReg，寄存器地址
+  * @param  ucMask，清位值
+  * @retval 无
+  *************************************/
+void ClearBitMask ( uint8_t ucReg, uint8_t ucMask )  
+{
+  uint8_t ucTemp;
+ 
+  ucTemp = ReadRawRC ( ucReg );
+  WriteRawRC ( ucReg, ucTemp & ( ~ ucMask) ); // clear bit mask
+}
+ 
+/**************************************
+  * @brief  开启天线 
+  * @param  无
+  * @retval 无
+  *************************************/
+void PcdAntennaOn ( void )
+{
+  uint8_t uc;
+ 
+  uc = ReadRawRC ( TxControlReg );
+  if ( ! ( uc & 0x03 ) )
+   SetBitMask(TxControlReg, 0x03);		
+}
+
+
+/**************************************
+  * @brief  关闭天线
+  * @param  无
+  * @retval 无
+  *************************************/
+void PcdAntennaOff ( void )
+{
+  ClearBitMask ( TxControlReg, 0x03 );	
+}
+
+
+/**************************************
+  * @brief  复位RC522 
+  * @param  无
+  * @retval 无
+*************************************/
+void PcdReset ( void )
+{
+	RFID_RST_H;
+	delay_us(1);
+	
+	RFID_RST_L;
+	delay_us(1);
+	
+	RFID_RST_H;
+	delay_us(1);
+	
+	WriteRawRC ( CommandReg, 0x0f );
+	while( ReadRawRC ( CommandReg ) & 0x10 );
+	delay_us(1);
+	
+	//定义发送和接收常用模式 和Mifare卡通讯，CRC初始值0x6363
+  WriteRawRC( ModeReg, 0x3D );        
+  WriteRawRC( TReloadRegL, 30 );      //16位定时器低位    
+	WriteRawRC( TReloadRegH, 0 );			 //16位定时器高位
+  WriteRawRC( TModeReg,0x8D);			 //定义内部定时器的设置
+  WriteRawRC( TPrescalerReg, 0x3E );	 //设置定时器分频系数
+	WriteRawRC( TxAutoReg, 0x40 );			 //调制发送信号为100%ASK	
+	
+}
+
+/**************************************
+  * @brief  复位RC522 
+  * @param  无
+  * @retval 无
+*************************************/
+void Reset_RC522(void)
+{
+	PcdReset();       //功    能：复位RC522
+	PcdAntennaOff();  //关闭天线
+	PcdAntennaOn();   //开启天线
+}    
+
+/**************************************
+  * @brief  设置RC522的工作方式
+  * @param  ucType，工作方式
+  * @retval 无
+*************************************/
+void M500PcdConfigISOType ( uint8_t ucType )
+{
+	if (ucType == 'A')                     //ISO14443_A
+  {
+		ClearBitMask ( Status2Reg, 0x08 );
+        WriteRawRC ( ModeReg, 0x3D );         //3F
+		WriteRawRC ( RxSelReg, 0x86 );        //84
+		WriteRawRC( RFCfgReg, 0x7F );         //4F
+		WriteRawRC( TReloadRegL, 30 );        
+		WriteRawRC ( TReloadRegH, 0 );
+		WriteRawRC ( TModeReg, 0x8D );
+		WriteRawRC ( TPrescalerReg, 0x3E );
+		
+		delay_us(2);
+		PcdAntennaOn ();//开天线		
+   }	 
+}
+
+/**************************************
+  * @brief  通过RC522和ISO14443卡通讯
+  * @param  ucCommand，RC522命令字
+  * @param  pInData，通过RC522发送到卡片的数据
+  * @param  ucInLenByte，发送数据的字节长度
+  * @param  pOutData，接收到的卡片返回数据
+  * @param  pOutLenBit，返回数据的位长度
+  * @retval 状态值= MI_OK，成功
+************************************/
+char PcdComMF522 ( uint8_t ucCommand,
+                   uint8_t * pInData, 
+                   uint8_t ucInLenByte, 
+                   uint8_t * pOutData,
+                   uint32_t * pOutLenBit )		
+{
+  char cStatus = MI_ERR;
+  uint8_t ucIrqEn   = 0x00;
+  uint8_t ucWaitFor = 0x00;
+  uint8_t ucLastBits;
+  uint8_t ucN;
+  uint32_t ul;
+ 
+  switch ( ucCommand )
+  {
+     case PCD_AUTHENT:		  //Mifare认证
+        ucIrqEn   = 0x12;		//允许错误中断请求ErrIEn  允许空闲中断IdleIEn
+        ucWaitFor = 0x10;		//认证寻卡等待时候 查询空闲中断标志位
+        break;
+     
+     case PCD_TRANSCEIVE:		//接收发送 发送接收
+        ucIrqEn   = 0x77;		//允许TxIEn RxIEn IdleIEn LoAlertIEn ErrIEn TimerIEn
+        ucWaitFor = 0x30;		//寻卡等待时候 查询接收中断标志位与 空闲中断标志位
+        break;
+     
+     default:
+       break;     
+  }
+  //IRqInv置位管脚IRQ与Status1Reg的IRq位的值相反 
+  WriteRawRC ( ComIEnReg, ucIrqEn | 0x80 );
+  //Set1该位清零时，CommIRqReg的屏蔽位清零
+  ClearBitMask ( ComIrqReg, 0x80 );	 
+  //写空闲命令
+  WriteRawRC ( CommandReg, PCD_IDLE );		 
+  
+  //置位FlushBuffer清除内部FIFO的读和写指针以及ErrReg的BufferOvfl标志位被清除
+  SetBitMask ( FIFOLevelReg, 0x80 );			
+ 
+  for ( ul = 0; ul < ucInLenByte; ul ++ )
+    WriteRawRC ( FIFODataReg, pInData [ ul ] ); //写数据进FIFOdata
+    
+  WriteRawRC ( CommandReg, ucCommand );					//写命令
+ 
+ 
+  if ( ucCommand == PCD_TRANSCEIVE )
+    
+    //StartSend置位启动数据发送 该位与收发命令使用时才有效
+    SetBitMask(BitFramingReg,0x80);  				  
+ 
+  ul = 1000;                             //根据时钟频率调整，操作M1卡最大等待时间25ms
+ 
+  do 														         //认证 与寻卡等待时间	
+  {
+       ucN = ReadRawRC ( ComIrqReg );		 //查询事件中断
+       ul --;
+  } while ( ( ul != 0 ) && ( ! ( ucN & 0x01 ) ) && ( ! ( ucN & ucWaitFor ) ) );	//退出条件i=0,定时器中断，与写空闲命令
+ 
+  ClearBitMask ( BitFramingReg, 0x80 );	 //清理允许StartSend位
+ 
+  if ( ul != 0 )
+  {
+    //读错误标志寄存器BufferOfI CollErr ParityErr ProtocolErr
+    if ( ! ( ReadRawRC ( ErrorReg ) & 0x1B ) )	
+    {
+      cStatus = MI_OK;
+      
+      if ( ucN & ucIrqEn & 0x01 )				//是否发生定时器中断
+        cStatus = MI_NOTAGERR;   
+        
+      if ( ucCommand == PCD_TRANSCEIVE )
+      {
+        //读FIFO中保存的字节数
+        ucN = ReadRawRC ( FIFOLevelReg );		          
+        
+        //最后接收到得字节的有效位数
+        ucLastBits = ReadRawRC ( ControlReg ) & 0x07;	
+        
+        if ( ucLastBits )
+          
+          //N个字节数减去1（最后一个字节）+最后一位的位数 读取到的数据总位数
+          * pOutLenBit = ( ucN - 1 ) * 8 + ucLastBits;   	
+        else
+          * pOutLenBit = ucN * 8;      //最后接收到的字节整个字节有效
+        
+        if ( ucN == 0 )		
+          ucN = 1;    
+        
+        if ( ucN > MAXRLEN )
+          ucN = MAXRLEN;   
+        
+        for ( ul = 0; ul < ucN; ul ++ )
+          pOutData [ ul ] = ReadRawRC ( FIFODataReg );   
+        
+        }        
+    }   
+    else
+      cStatus = MI_ERR;       
+  }
+ 
+  SetBitMask ( ControlReg, 0x80 );           // stop timer now
+  WriteRawRC ( CommandReg, PCD_IDLE ); 
+   
+  return cStatus;
+}
+
+
+
+/**************************************************************************
+  * @brief 寻卡
+  * @param  ucReq_code，寻卡方式 = 0x52，寻感应区内所有符合14443A标准的卡；
+                        寻卡方式= 0x26，寻未进入休眠状态的卡
+  * @param  pTagType，卡片类型代码
+             = 0x4400，Mifare_UltraLight
+             = 0x0400，Mifare_One(S50)
+             = 0x0200，Mifare_One(S70)
+             = 0x0800，Mifare_Pro(X))
+             = 0x4403，Mifare_DESFire
+  * @retval 状态值= MI_OK，成功
+************************************************************************/
+char PcdRequest ( uint8_t ucReq_code, uint8_t * pTagType )
+{
+  char cStatus;  
+  uint8_t ucComMF522Buf [ MAXRLEN ]; 
+  uint32_t ulLen;
+ 
+  //清理指示MIFARECyptol单元接通以及所有卡的数据通信被加密的情况
+  ClearBitMask ( Status2Reg, 0x08 );
+	//发送的最后一个字节的 七位
+  WriteRawRC ( BitFramingReg, 0x07 );
+  //TX1,TX2管脚的输出信号传递经发送调制的13.56的能量载波信号
+  SetBitMask ( TxControlReg, 0x03 );	
+ 
+  ucComMF522Buf [ 0 ] = ucReq_code;		//存入 卡片命令字
+ 
+  cStatus = PcdComMF522 ( PCD_TRANSCEIVE,	
+                          ucComMF522Buf,
+                          1, 
+                          ucComMF522Buf,
+                          & ulLen );	//寻卡  
+ 
+  if ( ( cStatus == MI_OK ) && ( ulLen == 0x10 ) )	//寻卡成功返回卡类型 
+  {    
+     * pTagType = ucComMF522Buf [ 0 ];
+     * ( pTagType + 1 ) = ucComMF522Buf [ 1 ];
+  }
+ 
+  else
+   cStatus = MI_ERR;
+ 
+  return cStatus;	 
+}
+
+/************************************
+  * @brief  防冲撞
+  * @param  pSnr，卡片序列号，4字节
+  * @retval 状态值= MI_OK，成功
+************************************/
+char PcdAnticoll ( uint8_t * pSnr )
+{
+  char cStatus;
+  uint8_t uc, ucSnr_check = 0;
+  uint8_t ucComMF522Buf [ MAXRLEN ]; 
+  uint32_t ulLen;
+  
+  //清MFCryptol On位 只有成功执行MFAuthent命令后，该位才能置位
+  ClearBitMask ( Status2Reg, 0x08 );
+  //清理寄存器 停止收发
+  WriteRawRC ( BitFramingReg, 0x00);	
+	//清ValuesAfterColl所有接收的位在冲突后被清除
+  ClearBitMask ( CollReg, 0x80 );			  
+ 
+  ucComMF522Buf [ 0 ] = 0x93;	          //卡片防冲突命令
+  ucComMF522Buf [ 1 ] = 0x20;
+ 
+  cStatus = PcdComMF522 ( PCD_TRANSCEIVE, 
+                          ucComMF522Buf,
+                          2, 
+                          ucComMF522Buf,
+                          & ulLen);      //与卡片通信
+ 
+  if ( cStatus == MI_OK)		            //通信成功
+  {
+    for ( uc = 0; uc < 4; uc ++ )
+    {
+       * ( pSnr + uc )  = ucComMF522Buf [ uc ]; //读出UID
+       ucSnr_check ^= ucComMF522Buf [ uc ];
+    }
+    
+    if ( ucSnr_check != ucComMF522Buf [ uc ] )
+      cStatus = MI_ERR;    				 
+  }
+  
+  SetBitMask ( CollReg, 0x80 );
+      
+  return cStatus;		
+}
+
+/************************************
+  * @brief  用RC522计算CRC16
+  * @param  pIndata，计算CRC16的数组
+  * @param  ucLen，计算CRC16的数组字节长度
+  * @param  pOutData，存放计算结果存放的首地址
+  * @retval 无
+  ************************************/
+void CalulateCRC ( uint8_t * pIndata, 
+                 uint8_t ucLen, 
+                 uint8_t * pOutData )
+{
+  uint8_t uc, ucN;
+ 
+  ClearBitMask(DivIrqReg,0x04);
+ 
+  WriteRawRC(CommandReg,PCD_IDLE);
+ 
+  SetBitMask(FIFOLevelReg,0x80);
+ 
+  for ( uc = 0; uc < ucLen; uc ++)
+    WriteRawRC ( FIFODataReg, * ( pIndata + uc ) );   
+ 
+  WriteRawRC ( CommandReg, PCD_CALCCRC );
+ 
+  uc = 0xFF;
+ 
+  do 
+  {
+      ucN = ReadRawRC ( DivIrqReg );
+      uc --;
+  } while ( ( uc != 0 ) && ! ( ucN & 0x04 ) );
+  
+  pOutData [ 0 ] = ReadRawRC ( CRCResultRegL );
+  pOutData [ 1 ] = ReadRawRC ( CRCResultRegM );		
+}
+
+/************************************
+  * @brief  选定卡片
+  * @param  pSnr，卡片序列号，4字节
+  * @retval 状态值= MI_OK，成功
+  ************************************/
+char PcdSelect ( uint8_t * pSnr )
+{
+  char ucN;
+  uint8_t uc;
+  uint8_t ucComMF522Buf [ MAXRLEN ]; 
+  uint32_t  ulLen;
+  
+  
+  ucComMF522Buf [ 0 ] = PICC_ANTICOLL1;
+  ucComMF522Buf [ 1 ] = 0x70;
+  ucComMF522Buf [ 6 ] = 0;
+ 
+  for ( uc = 0; uc < 4; uc ++ )
+  {
+    ucComMF522Buf [ uc + 2 ] = * ( pSnr + uc );
+    ucComMF522Buf [ 6 ] ^= * ( pSnr + uc );
+  }
+  
+  CalulateCRC ( ucComMF522Buf, 7, & ucComMF522Buf [ 7 ] );
+ 
+  ClearBitMask ( Status2Reg, 0x08 );
+ 
+  ucN = PcdComMF522 ( PCD_TRANSCEIVE,
+                     ucComMF522Buf,
+                     9,
+                     ucComMF522Buf, 
+                     & ulLen );
+  
+  if ( ( ucN == MI_OK ) && ( ulLen == 0x18 ) )
+    ucN = MI_OK;  
+  else
+    ucN = MI_ERR;    
+  
+  return ucN;		
+}
+
+
+/************************************
+  * @brief  验证卡片密码
+  * @param  ucAuth_mode，密码验证模式= 0x60，验证A密钥，
+                         密码验证模式= 0x61，验证B密钥
+  * @param  uint8_t ucAddr，控制块地址 （addr/4）*4 +3----控制块地址=(数据块地址/4)*4+3
+  * @param  pKey，密码 
+  * @param  pSnr，卡片序列号，4字节
+  * @retval 状态值= MI_OK，成功
+  ************************************/
+char PcdAuthState ( uint8_t ucAuth_mode, 
+                    uint8_t ucAddr, 
+                    uint8_t * pKey,
+                    uint8_t * pSnr )
+{
+  char cStatus;
+  uint8_t uc, ucComMF522Buf [ MAXRLEN ];
+  uint32_t ulLen;
+  
+ 
+  ucComMF522Buf [ 0 ] = ucAuth_mode;
+  ucComMF522Buf [ 1 ] = ucAddr;
+ 
+  for ( uc = 0; uc < 6; uc ++ )
+    ucComMF522Buf [ uc + 2 ] = * ( pKey + uc );   
+ 
+  for ( uc = 0; uc < 6; uc ++ )
+    ucComMF522Buf [ uc + 8 ] = * ( pSnr + uc );   
+ 
+  cStatus = PcdComMF522 ( PCD_AUTHENT,
+                          ucComMF522Buf, 
+                          12,
+                          ucComMF522Buf,
+                          & ulLen );
+ 
+  if ( ( cStatus != MI_OK ) || ( ! ( ReadRawRC ( Status2Reg ) & 0x08 ) ) )
+    cStatus = MI_ERR;   
+    
+  return cStatus;
+}
+
+
+
+/************************************
+  * @brief  写数据到M1卡一块
+  * @param  ucAddr，块地址（0-63）。M1卡总共有16个扇区(每个扇区有：3个数据块+1个控制块),共64个块
+  * @param  pData，写入的数据，16字节
+  * @retval 状态值= MI_OK，成功
+  ************************************/
+char PcdWrite ( uint8_t ucAddr, uint8_t * pData )
+{
+  char cStatus;
+  uint8_t uc, ucComMF522Buf [ MAXRLEN ];
+  uint32_t ulLen;
+   
+  
+  ucComMF522Buf [ 0 ] = PICC_WRITE;
+  ucComMF522Buf [ 1 ] = ucAddr;
+ 
+  CalulateCRC ( ucComMF522Buf, 2, & ucComMF522Buf [ 2 ] );
+ 
+  cStatus = PcdComMF522 ( PCD_TRANSCEIVE,
+                          ucComMF522Buf,
+                          4, 
+                          ucComMF522Buf,
+                          & ulLen );
+ 
+  if ( ( cStatus != MI_OK ) || ( ulLen != 4 ) || 
+         ( ( ucComMF522Buf [ 0 ] & 0x0F ) != 0x0A ) )
+    cStatus = MI_ERR;   
+      
+  if ( cStatus == MI_OK )
+  {
+    //memcpy(ucComMF522Buf, pData, 16);
+    for ( uc = 0; uc < 16; uc ++ )
+      ucComMF522Buf [ uc ] = * ( pData + uc );  
+    
+    CalulateCRC ( ucComMF522Buf, 16, & ucComMF522Buf [ 16 ] );
+ 
+    cStatus = PcdComMF522 ( PCD_TRANSCEIVE,
+                           ucComMF522Buf, 
+                           18, 
+                           ucComMF522Buf,
+                           & ulLen );
+    
+    if ( ( cStatus != MI_OK ) || ( ulLen != 4 ) || 
+         ( ( ucComMF522Buf [ 0 ] & 0x0F ) != 0x0A ) )
+      cStatus = MI_ERR;   
+    
+  } 	
+  return cStatus;		
+}
+
+
+/************************************
+  * @brief  读取M1卡一块数据
+  * @param  ucAddr，块地址（0-63）。M1卡总共有16个扇区(每个扇区有：3个数据块+1个控制块),共64个块
+  * @param  pData，读出的数据，16字节
+  * @retval 状态值= MI_OK，成功
+  ************************************/
+char PcdRead ( uint8_t ucAddr, uint8_t * pData )
+{
+  char cStatus;
+  uint8_t uc, ucComMF522Buf [ MAXRLEN ]; 
+  uint32_t ulLen;
+  
+  ucComMF522Buf [ 0 ] = PICC_READ;
+  ucComMF522Buf [ 1 ] = ucAddr;
+ 
+  CalulateCRC ( ucComMF522Buf, 2, & ucComMF522Buf [ 2 ] );
+ 
+  cStatus = PcdComMF522 ( PCD_TRANSCEIVE,
+                          ucComMF522Buf,
+                          4, 
+                          ucComMF522Buf,
+                          & ulLen );
+ 
+  if ( ( cStatus == MI_OK ) && ( ulLen == 0x90 ) )
+  {
+    for ( uc = 0; uc < 16; uc ++ )
+      * ( pData + uc ) = ucComMF522Buf [ uc ];   
+  }
+  
+  else
+    cStatus = MI_ERR;   
+   
+  return cStatus;		
+}
+
+
+ 
+ 
+/************************************
+  * @brief  命令卡片进入休眠状态
+  * @param  无
+  * @retval 状态值= MI_OK，成功
+  ************************************/
+char PcdHalt( void )
+{
+	uint8_t ucComMF522Buf [ MAXRLEN ]; 
+	uint32_t  ulLen;
+  
+ 
+  ucComMF522Buf [ 0 ] = PICC_HALT;
+  ucComMF522Buf [ 1 ] = 0;
+	
+  CalulateCRC ( ucComMF522Buf, 2, & ucComMF522Buf [ 2 ] );
+ 	PcdComMF522 ( PCD_TRANSCEIVE,
+                ucComMF522Buf,
+                4, 
+                ucComMF522Buf, 
+                & ulLen );
+ 
+  return MI_OK;	
+}
+ 
+
+/************************************
+  * @brief  MF522 初始化
+  * @param  无
+  ************************************/
+void RC522_Init(void)
+{
+	RFID_pin_init();//初始化RFID引脚
+	Reset_RC522();
+	M500PcdConfigISOType('A');
+}
+
+
+
+/*****************************
+ * 函数名：RFID_recognize
+ * 函数功能：RFID识别卡
+ * 函数参数：
+ *          u8 *pSnr--卡片序列号，4字节
+ *          u8 halt_mode    0:卡片识别后不进入休眠状态，1:卡片识别后进入休眠状态
+ * 函数返回值：u8         0:识别成功        非0:识别失败
+ * 函数说明：
+ *          休眠：
+ *               当卡片进入休眠状态，读卡器不能连续对卡片进行识别
+ *               也不能继续往下进行读写操作
+ ********************************/  
+u8 RFID_recognize(u8 *pSnr, u8 halt_mode)
+{
+  u8 id_type[2];
+  //寻卡
+  if(PcdRequest (PICC_REQIDL,id_type) != MI_OK)
+    return 1;
+  //防冲撞
+  if(PcdAnticoll(pSnr) != MI_OK)
+    return 2;
+  //选择卡片
+  if(PcdSelect(pSnr) != MI_OK)
+    return 3;
+  //识别到卡片，是否进入休眠状态
+  if(halt_mode == 1)
+  {
+    PcdHalt();
+  }
+  printf("卡片类型0x%02X%02X\r\n",id_type[0],id_type[1]);
+  printf("卡片ID号:0x%02X 0x%02X 0x%02X 0x%02X\r\n",pSnr[0],pSnr[1],pSnr[2],pSnr[3]);
+  return 0;//识别成功
+}
+
+
+/*****************************
+ * 函数名：RFID_write_block
+ * 函数功能：RFID写块函数
+ * 函数参数：
+ *           u8 addr----块地址0-63
+ *           u8 *data--要写入的数据，4字节数据
+ * 函数返回值：u8         0:写入成功        非0:写入失败
+ * 函数说明：
+ *          此函数固定写入数据大小16byte
+ *          不得将数据直接写入控制块
+ ********************************/ 
+u8 RFID_write_block(u8 addr, u8 *data)
+{
+  u8 id_buff[4] = {0};
+  u8 key[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
+  //1.识别卡
+  if(RFID_recognize(id_buff,0) != 0)
+  {
+    return 1;//识别卡失败
+  }
+  //2.验证卡片密码
+  if(PcdAuthState (PICC_AUTHENT1A,(addr/4)*4+3,key,id_buff) != MI_OK)
+  {
+    return 2;//验证密码失败
+  }
+  printf("验证密码成功\r\n");
+  //3.写入数据
+  if(PcdWrite (addr,data) != MI_OK)
+  {
+    return 3;//写入数据失败
+  }
+  printf("写入数据成功\r\n");
+  //4.写入成功后，进入休眠状态
+  PcdHalt();
+  return 0;//写入成功
+}
+
+
+
+/*****************************
+ * 函数名：RFID_read_block
+ * 函数功能：RFID读块函数
+ * 函数参数：
+ *           u8 addr----块地址0-63
+ *           u8 *data--读出的数据，16字节
+ * 函数返回值：u8         0:读成功        非0:读失败
+ * 函数说明：
+ *          此函数固定读数据大小16byte
+ ********************************/ 
+u8 RFID_read_block(u8 addr, u8 *data)
+{
+  u8 id_buff[4] = {0};
+  u8 key[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
+  //1.识别卡
+  if(RFID_recognize(id_buff,0) != 0)
+  {
+    return 1;//识别卡失败
+  }
+  //2.验证卡片密码
+  if(PcdAuthState (PICC_AUTHENT1A,(addr/4)*4+3,key,id_buff) != MI_OK)
+  {
+    return 2;//验证密码失败
+  }
+  printf("验证密码成功\r\n");
+  //3.读数据
+  if(PcdRead (addr,data) != MI_OK)
+  {
+    return 3;//读数据失败
+  }
+  printf("读出数据:%s\r\n",data);
+  //4.读成功后，进入休眠状态
+  PcdHalt();
+  return 0;//读成功
+}
+
+
+/*****************************
+ * 函数名：RFID_add_card
+ * 函数功能：添加射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+u8 buff[5][4] = {
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+  {0xff,0xff,0xff,0xff},
+};
+void RFID_add_card(void)
+{
+    u8 key_value = 0xff;
+    u8 id[4] = {0};
+    u8 i,j,cnt=0;
+    lcd_clear(0,0,240,240,0xffff);
+    lcd_show_zk_str("添加卡片",56,0,32,0x0000,0xffff);
+    lcd_show_zk_str("放置卡片",56,100,32,0x0000,0xffff);
+    lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
+    //读取空间35-55，判断是否有卡片ID
+    at24c02_sequential_read(35,20,(u8 *)buff);
+    // 1. 查找有没有重复卡
+    while(RFID_recognize(id,1))
+    {
+      key_value = CY8CMBR3116_key_scan();
+      if(key_value == '*')
+      {
+        lcd_clear(0,0,240,240,0xffff);
+        ui_flag = 0;
+        return;
+      }
+    }
+    for(i=0;i<5;i++)//遍历5个卡片ID
+    {
+      for(j=0;j<4;j++)//遍历4个字节
+      {
+        if(buff[i][j] == id[j]) //对比每一组每一个字节
+        {
+          cnt++;//记录每组卡片ID
+        }
+        if(cnt == 4)//如果4个字节都相等，说明是重复卡
+        {
+          lcd_show_zk_str("录入失败",56,100,32,0x0000,0xffff);
+          NV400F_send_data(0x0e);//卡重复语音
+          delay_ms(500);
+          lcd_clear(0,0,240,240,0xffff);
+          ui_flag = 0;
+          return;
+        }
+      }
+      cnt = 0;
+    }
+    //2.查找有没有空位
+    for(i=0;i<5;i++)//遍历5个卡片ID
+    {
+      for(j=0;j<4;j++)//遍历4个字节
+      {
+        if(buff[i][j] == 0xff) //对比每一组每一个字节
+        {
+          cnt++;//记录每组卡片ID的空闲字节数量
+        }
+      }
+      if(cnt == 4)
+      {
+        break;    //记录i的值
+      }
+      cnt=0;
+    }
+    if(i == 5)
+    {
+      lcd_show_zk_str("位置已满",56,100,32,0x0000,0xffff);
+      delay_ms(500);
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      return;//没有空位
+    }
+    //3. 写入卡片ID
+    at24c02_write_page(35+i*4,4,id);
+    //4. 提示用户卡片ID已添加
+    lcd_show_zk_str("添加成功",56,100,32,0x0000,0xffff);
+    NV400F_send_data(0X1c);//操作成功
+    delay_ms(500);
+    lcd_clear(0,0,240,240,0xffff);
+    ui_flag = 0;
+    return;
+}
+
+
+/*****************************
+ * 函数名：RFID_open_door
+ * 函数功能：添加射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+void RFID_open_door(void)
+{
+  u8 id[4] = {0};
+  u8 i,j,cnt=0;
+  //识别卡
+  if(RFID_recognize(id,1) != 0)
+    return;
+  //读取空间35-55
+  at24c02_sequential_read(35,20,(u8 *)buff);
+  for(i=0;i<5;i++)//遍历5个卡片ID
+  {
+    for(j=0;j<4;j++)//遍历4个字节
+    {
+      if(buff[i][j] == id[j]) //对比每一组每一个字节
+      {
+        cnt++;//记录每组卡片ID
+      }
+      if(cnt == 4)//如果4个字节都相等
+      {
+        lcd_clear(0,0,240,240,0xffff);
+        lcd_show_zk_str("开门成功，欢迎回家",0,0,32,0x0000,0xffff);
+        NV400F_send_data(0x12);
+        LOCK_ON;
+        delay_ms(1500);
+        LOCK_OFF;
+        lcd_clear(0,0,240,240,0xffff);
+        ui_flag = 0;
+      }
+    }
+    cnt = 0;              
+  }
+}
+
+
+/*****************************
+ * 函数名：RFID_delete_card
+ * 函数功能：删除射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+void RFID_delete_card(void)
+{
+  u8 key_value = 0xff;
+  u8 i,j,cnt=0;
+  u8 id[4] = {0};
+  lcd_clear(0,0,240,240,0xffff);
+  lcd_show_zk_str("删除指定卡片",24,0,32,0x0000,0xffff);
+  lcd_show_zk_str("放置卡片",56,100,32,0x0000,0xffff);
+  lcd_show_zk_str("按*键返回",0,206,32,0x0000,0xffff);
+
+
+  //识别卡
+  while(RFID_recognize(id,0) != 0)
+  {
+    key_value = CY8CMBR3116_key_scan();
+    if(key_value == '*')
+    {
+      lcd_clear(0,0,240,240,0xffff);
+      ui_flag = 0;
+      return;
+    }
+  }
+  
+  at24c02_sequential_read(35,20,(u8 *)buff);
+  for(i=0;i<5;i++)//遍历5个卡片ID
+  {
+    for(j=0;j<4;j++)
+    {
+      if(buff[i][j] == id[j]) //对比每一组每一个字节
+      {
+        cnt++;//记录每组卡片ID
+      }
+    }
+    if(cnt == 4)
+    {
+      break;//找到匹配的卡片ID
+    }
+  }
+  if(i == 5)
+  {
+    lcd_show_zk_str("未找到该卡片",24,100,32,0x0000,0xffff);
+    delay_ms(500);
+    lcd_clear(0,0,240,240,0xffff);
+    ui_flag = 0;
+    return;
+  }
+  //删除卡片ID
+  lcd_clear(0,0,240,240,0xffff);
+  lcd_show_zk_str("确认删除?",56,0,32,0x0000,0xffff);
+  NV400F_send_data(0x0f);//是否删除语音
+  lcd_show_zk_str("#:确认 *:取消",15,98,32,0x0000,0xffff);
+  while(1)
+  {
+    key_value = CY8CMBR3116_key_scan();
+    if(key_value == '#')
+    {
+      //删除卡片ID
+      for(u8 j=0;j<4;j++)
+      {
+        buff[i][j] = 0xff;
+      }
+      at24c02_write_page(35+i*4,4,(u8 *)buff);
+      //提示用户卡片ID已删除
+      lcd_clear(0,0,240,240,0xffff);
+      lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
+      NV400F_send_data(0X1c);//操作成功
+      delay_ms(500);
+      break;
+    }
+    if(key_value == '*')
+    {
+      break;
+    }
+  }
+  lcd_clear(0,0,240,240,0xffff);
+  ui_flag = 0;
+}
+
+
+/*****************************
+ * 函数名：RFID_delete_all_card
+ * 函数功能：删除全部射频卡ID
+ * 函数参数：无
+ * 函数返回值：无
+ * 函数说明：
+ ********************************/ 
+void RFID_delete_all_card(void)
+{
+  u8 key_value = 0xff;
+  u8 i,j;
+  lcd_clear(0,0,240,240,0xffff);
+  lcd_show_zk_str("确认删除?", 56, 0, 32, 0x0000, 0xffff);
+  NV400F_send_data(0x0f);//是否删除语音
+  lcd_show_zk_str("#:确认 *:取消", 15, 98, 32, 0x0000, 0xffff);
+
+
+  while(1)
+  {
+    key_value = CY8CMBR3116_key_scan();
+    if(key_value == '#')
+    {
+      for(i=0;i<5;i++)
+      {
+        for(j=0;j<4;j++)
+        {
+          buff[i][j] = 0xff;
+        }
+      }
+      at24c02_write_page(35,20,(u8 *)buff);
+      //提示用户卡片ID已删除
+      lcd_clear(0,0,240,240,0xffff);
+      lcd_show_zk_str("删除成功",56,100,32,0x0000,0xffff);
+      NV400F_send_data(0X1c);//操作成功
+      delay_ms(500);
+      break;
+    }
+    if(key_value == '*')
+    {
+      break;
+    }
+  }
+  lcd_clear(0,0,240,240,0xffff);
+  ui_flag = 0; 
+}
